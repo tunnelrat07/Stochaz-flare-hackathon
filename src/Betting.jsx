@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ThirdwebProvider, ConnectButton, darkTheme } from "thirdweb/react";
 import { client } from "./client";
+
 export function BettingPage() {
   const [activeTab, setActiveTab] = useState("live");
   const [expandedEvent, setExpandedEvent] = useState(null);
