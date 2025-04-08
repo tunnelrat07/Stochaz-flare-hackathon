@@ -157,9 +157,11 @@ export function App() {
                 </span>
               </h1>
               <p className="mt-3 max-w-md mx-auto text-base text-gray-300 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                Place bets on anything with complete transparency, security, and
-                control of your funds. No middlemen, no limits, just pure
-                blockchain betting.
+                Bet with complete transparency and security. Experience
+                trustless betting powered by smart contracts, with verified
+                real-world data from Flare Data Connector and decentralized
+                price feeds via FTSO. Enjoy provably fair outcomes and random
+                rewards using Flare’s secure random number generator.
               </p>
               <div className="mt-8 sm:mt-10 flex justify-center">
                 <div className="rounded-md shadow">
@@ -279,8 +281,8 @@ export function App() {
                   Trustless Security
                 </h3>
                 <p className="mt-2 text-gray-300">
-                  Smart contracts ensure that your funds are always safe and
-                  bets are executed exactly as agreed.
+                  Smart contracts eliminate middlemen, guaranteeing that all
+                  bets are executed exactly as agreed with full transparency.
                 </p>
               </div>
 
@@ -289,11 +291,12 @@ export function App() {
                   <Zap className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-xl font-medium text-white">
-                  Lightning Fast
+                  Real-World Data Feeds
                 </h3>
                 <p className="mt-2 text-gray-300">
-                  Place bets and receive winnings in seconds with our optimized
-                  blockchain integration.
+                  Flare’s FTSO provides decentralized, real-time data feeds to
+                  settle bets accurately and securely without relying on
+                  centralized data sources.
                 </p>
               </div>
 
@@ -302,11 +305,11 @@ export function App() {
                   <BarChart3 className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-xl font-medium text-white">
-                  Low Fees
+                  Verified External Data
                 </h3>
                 <p className="mt-2 text-gray-300">
-                  Our platform charges minimal fees compared to traditional
-                  betting sites, maximizing your profits.
+                  With Flare Data Connector, you can bet on events using secure,
+                  verified data from other blockchains and the internet.
                 </p>
               </div>
 
@@ -315,11 +318,12 @@ export function App() {
                   <Users className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-xl font-medium text-white">
-                  Community Driven
+                  Fair Randomness
                 </h3>
                 <p className="mt-2 text-gray-300">
-                  Create your own betting markets or participate in
-                  community-generated events.
+                  Random rewards and outcomes are generated using Flare’s secure
+                  and verifiable random number generator, ensuring provable
+                  fairness.
                 </p>
               </div>
             </div>

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import {
-  ChevronDown,
-  ChevronUp,
   AlertCircle,
   Clock,
   Activity,
@@ -9,16 +7,13 @@ import {
   RefreshCw,
   Award,
   ExternalLink,
-  Pyramid,
   Dices,
-  Wallet,
 } from "lucide-react";
-import { ThirdwebProvider, ConnectButton, darkTheme } from "thirdweb/react";
+import { ThirdwebProvider, ConnectButton } from "thirdweb/react";
 import { client } from "./client";
 
 export function BettingPage() {
   const [activeTab, setActiveTab] = useState("live");
-  const [expandedEvent, setExpandedEvent] = useState(null);
 
   // Sample data for betting events
   const bettingEvents = {
@@ -32,7 +27,7 @@ export function BettingPage() {
         endsIn: "3d 8h",
         oracle: "Chainlink Price Feed",
         poolSize: "4,328 FLR",
-        odds: { for: 1.85, against: 2.15 },
+        odds: { for: 1.5, against: 1.5 },
         activity: "High",
         imageUrl:
           "https://thegivingblock.com/wp-content/uploads/2021/12/Ethereum-Name-Service-ENS.png",
@@ -40,50 +35,32 @@ export function BettingPage() {
     ],
   };
 
-  // Handle bet amount input for expanded event
-  const [betAmount, setBetAmount] = useState();
+  // Handle bet side selection
   const [betSide, setBetSide] = useState(null);
-
-  const toggleEventExpand = (id) => {
-    setExpandedEvent(expandedEvent === id ? null : id);
-    setBetAmount("");
-    setBetSide(null);
-  };
 
   const handleBetSideSelect = (side) => {
     setBetSide(side);
   };
 
-  const handleBetSubmit = (eventId) => {
+  const handleBetSubmit = (eventId, side) => {
     // Here you would integrate with your smart contract
-    console.log(
-      `Placing bet on event ${eventId}, ${betSide} with ${betAmount} FLR`
-    );
+    console.log(`Placing bet on event ${eventId}, ${side} with $5`);
     // Reset form after submission
-    setBetAmount(0);
     setBetSide(null);
-    // Optionally close the expanded view
-    setExpandedEvent(null);
     // In a real implementation, you would show a loading state and success/error message
   };
 
-  // Calculate potential winnings based on odds and bet amount
-  const calculateWinnings = (odds) => {
-    if (!betAmount || isNaN(betAmount) || betAmount <= 0) return "0.00";
-    return (parseFloat(betAmount) * odds).toFixed(2);
-  };
+  const renderEventCard = (event) => {
+    const fixedBetAmount = 5;
+    const potentialWinnings = (fixedBetAmount * 1.5).toFixed(2);
 
-  const renderEventCard = (event, isExpanded) => {
     return (
       <div
         key={event.id}
         className="bg-gray-900 rounded-lg overflow-hidden mb-4 border border-gray-800"
       >
         {/* Event Header - Always visible */}
-        <div
-          className="px-4 py-4 flex items-center justify-between cursor-pointer"
-          onClick={() => toggleEventExpand(event.id)}
-        >
+        <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <img
@@ -113,191 +90,113 @@ export function BettingPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center">
-            {activeTab === "completed" ? (
-              <div
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  event.result === "For"
-                    ? "bg-green-900 text-green-300"
-                    : "bg-red-900 text-red-300"
-                }`}
-              >
-                {event.result}
-              </div>
-            ) : (
-              <div className="text-right mr-3">
-                <div className="text-fuchsia-400 font-medium">
-                  Pool: {event.poolSize}
-                </div>
-                <div className="text-xs text-gray-400">
-                  Oracle: {event.oracle}
-                </div>
-              </div>
-            )}
-            {isExpanded ? (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
-            )}
+          <div className="text-right">
+            <div className="text-fuchsia-400 font-medium">
+              Pool: {event.poolSize}
+            </div>
+            <div className="text-xs text-gray-400">Oracle: {event.oracle}</div>
           </div>
         </div>
 
-        {/* Expanded View - Only visible when expanded */}
-        {isExpanded && (
-          <div className="px-4 py-3 bg-slate-950 border-t border-gray-800">
-            <p className="text-gray-300 mb-4">{event.description}</p>
+        {/* Event Details - Always visible now (no dropdown) */}
+        <div className="px-4 py-3 bg-slate-950 border-t border-gray-800">
+          <p className="text-gray-300 mb-4">{event.description}</p>
 
-            {activeTab !== "completed" && (
-              <>
-                <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mb-6">
-                  <button
-                    className={`flex-1 px-4 py-3 rounded-md flex justify-between items-center ${
-                      betSide === "for"
-                        ? "bg-blue-700 text-white border-2 border-blue-500"
-                        : "bg-gray-800 text-gray-200 hover:bg-gray-700"
-                    }`}
-                    onClick={() => handleBetSideSelect("for")}
-                  >
-                    <div className="text-left">
-                      <div className="font-medium">For</div>
-                      <div className="text-sm text-gray-300">
-                        Yes, it will happen
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-fuchsia-400">
-                        {event.odds.for}x
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    className={`flex-1 px-4 py-3 rounded-md flex justify-between items-center ${
-                      betSide === "against"
-                        ? "bg-blue-700 text-white border-2 border-blue-500"
-                        : "bg-gray-800 text-gray-200 hover:bg-gray-700"
-                    }`}
-                    onClick={() => handleBetSideSelect("against")}
-                  >
-                    <div className="text-left">
-                      <div className="font-medium">Against</div>
-                      <div className="text-sm text-gray-300">
-                        No, it won't happen
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-fuchsia-400">
-                        {event.odds.against}x
-                      </div>
-                    </div>
-                  </button>
+          <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mb-6">
+            <button
+              className={`flex-1 px-4 py-3 rounded-md flex justify-between items-center ${
+                betSide === "for"
+                  ? "bg-blue-500 text-white border-2 border-blue-500"
+                  : "bg-gray-800 text-gray-200 hover:bg-gray-700"
+              }`}
+              onClick={() => handleBetSideSelect("for")}
+            >
+              <div className="text-left">
+                <div className="font-medium">
+                  Bet For <b className="text-2xl font-bold text-white">$5</b>
                 </div>
-
-                {betSide && (
-                  <div className="bg-gray-800 rounded-lg p-4 mb-4">
-                    <div className="flex flex-col md:flex-row md:items-center mb-4">
-                      <div className="flex-1 mb-2 md:mb-0">
-                        <label className="block text-sm font-medium text-gray-400 mb-1">
-                          Bet Amount (FLR)
-                        </label>
-                        <input
-                          type="number"
-                          value={betAmount}
-                          onChange={(e) => setBetAmount(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-950 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-fuchsia-500 text-white"
-                          placeholder="Enter amount"
-                        />
-                      </div>
-                      <div className="md:ml-4">
-                        <div className="text-sm font-medium text-gray-400 mb-1">
-                          Potential Winnings
-                        </div>
-                        <div className="text-xl font-bold text-fuchsia-400">
-                          {calculateWinnings(
-                            betSide === "for"
-                              ? event.odds.for
-                              : event.odds.against
-                          )}{" "}
-                          FLR
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center text-xs text-gray-400">
-                        <Info className="h-3 w-3 mr-1" />
-                        Oracle verification via {event.oracle}
-                      </div>
-                      <button
-                        className={`px-4 py-2 rounded-md text-white font-medium ${
-                          betAmount && !isNaN(betAmount) && betAmount > 0
-                            ? "bg-fuchsia-600 hover:bg-fuchsia-500"
-                            : "bg-gray-700 cursor-not-allowed"
-                        }`}
-                        disabled={
-                          !betAmount || isNaN(betAmount) || betAmount <= 0
-                        }
-                        onClick={() => handleBetSubmit(event.id)}
-                      >
-                        Place Bet
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <div className="flex items-center">
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Last updated 3 min ago
-                  </div>
-                  <a
-                    href="#"
-                    className="flex items-center text-fuchsia-400 hover:text-fuchsia-300"
-                  >
-                    View on block explorer
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </div>
-              </>
-            )}
-
-            {activeTab === "completed" && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-gray-300">Outcome:</div>
-                  <div
-                    className={`px-2 py-1 rounded font-medium ${
-                      event.result === "For"
-                        ? "bg-green-900 text-green-300"
-                        : "bg-red-900 text-red-300"
-                    }`}
-                  >
-                    {event.result}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-gray-300">Pool Size:</div>
-                  <div className="text-white font-medium">{event.poolSize}</div>
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-gray-300">Winner Payout:</div>
-                  <div className="text-fuchsia-400 font-bold">
-                    {event.payout}
-                  </div>
-                </div>
-                <div className="flex items-center justify-center mt-4">
-                  <a
-                    href="#"
-                    className="flex items-center text-fuchsia-400 hover:text-fuchsia-300 text-sm"
-                  >
-                    <Award className="h-4 w-4 mr-1" />
-                    View detailed results
-                  </a>
+                <div className="text-sm text-gray-300">Yes, it will happen</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-fuchsia-400">
+                  Win ${potentialWinnings}
                 </div>
               </div>
-            )}
+            </button>
+
+            <button
+              className={`flex-1 px-4 py-3 rounded-md flex justify-between items-center ${
+                betSide === "against"
+                  ? "bg-blue-500 text-white border-2 border-blue-500"
+                  : "bg-gray-800 text-gray-200 hover:bg-gray-700"
+              }`}
+              onClick={() => handleBetSideSelect("against")}
+            >
+              <div className="text-left">
+                <div className="font-medium">
+                  Bet Against{" "}
+                  <b className="text-2xl font-bold text-white">$5</b>
+                </div>
+                <div className="text-sm text-gray-300">No, it won't happen</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-fuchsia-400">
+                  Win ${potentialWinnings}
+                </div>
+              </div>
+            </button>
           </div>
-        )}
+
+          {betSide && (
+            <div className="bg-gray-800 rounded-lg p-4 mb-4">
+              <div className="flex flex-col md:flex-row md:items-center mb-4">
+                <div className="flex-1 mb-2 md:mb-0">
+                  <div className="text-sm font-medium text-gray-400 mb-1">
+                    Your Bet
+                  </div>
+                  <div className="text-xl font-bold text-white">
+                    ${fixedBetAmount} on {betSide === "for" ? "For" : "Against"}
+                  </div>
+                </div>
+                <div className="md:ml-4">
+                  <div className="text-sm font-medium text-gray-400 mb-1">
+                    Potential Winnings
+                  </div>
+                  <div className="text-xl font-bold text-fuchsia-400">
+                    ${potentialWinnings}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center text-xs text-gray-400">
+                  <Info className="h-3 w-3 mr-1" />
+                  Oracle verification via {event.oracle}
+                </div>
+                <button
+                  className="px-4 py-2 rounded-md text-white font-medium bg-fuchsia-600 hover:bg-fuchsia-500"
+                  onClick={() => handleBetSubmit(event.id, betSide)}
+                >
+                  Confirm Bet
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center">
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Last updated 3 min ago
+            </div>
+            <a
+              href="#"
+              className="flex items-center text-fuchsia-400 hover:text-fuchsia-300"
+            >
+              View contract on Flare Testnet Coston2 explorer
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </a>
+          </div>
+        </div>
       </div>
     );
   };
@@ -340,9 +239,9 @@ export function BettingPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Cross-Chain Betting</h1>
+            <h1 className="text-3xl font-bold">Bet on Real Events</h1>
             <p className="text-gray-400 mt-1">
-              Bet on events happening across multiple blockchains
+              Bet on events happening in real time
             </p>
           </div>
         </div>
@@ -425,9 +324,7 @@ export function BettingPage() {
               </button>
             </div>
           ) : (
-            bettingEvents[activeTab].map((event) =>
-              renderEventCard(event, event.id === expandedEvent)
-            )
+            bettingEvents[activeTab].map((event) => renderEventCard(event))
           )}
         </div>
       </main>
