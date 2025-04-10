@@ -5,9 +5,9 @@ const bettingEvents = {
       title: "ENS Token Crosses $20 on Ethereum",
       description:
         "Will the ENS token price exceed $20 before the end of the week?",
-      chain: "Ethereum",
+      chain: "Flare Testnet Coston2",
       endsIn: "3d 8h",
-      oracle: "Chainlink Price Feed",
+      oracle: "Flare FTSO Price Feed",
       poolSize: "4,328 FLR",
       odds: { for: 1.5, against: 1.5 },
       activity: "High",
