@@ -9,7 +9,6 @@ import {
   BarChart3,
   Users,
   CircleDollarSign,
-  Pyramid,
 } from "lucide-react";
 export default function Navbar({ menuOpen, setMenuOpen }) {
   return (
@@ -28,7 +27,7 @@ export default function Navbar({ menuOpen, setMenuOpen }) {
               <div className="hidden md:block ml-10">
                 <div className="flex space-x-4">
                   <a
-                    href="#"
+                    href="/"
                     className="px-3 py-2 rounded-md text-sm font-medium text-fuchsia-400 hover:text-fuchsia-300"
                   >
                     Home
