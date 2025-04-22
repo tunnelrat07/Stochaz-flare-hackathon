@@ -1,47 +1,177 @@
-require("dotenv").config();
-const { ethers } = require("ethers");
-const axios = require("axios");
+import dotenv from "dotenv";
+dotenv.config();
+import { JsonRpcProvider, Wallet, Contract, AbiCoder } from "ethers";
+import axios from "axios";
 
-// Load env vars
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+// Load environment variables
+const provider = new JsonRpcProvider(
+  "https://coston2-api.flare.network/ext/bc/C/rpc"
+);
+const wallet = new Wallet(
+  "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22",
+  provider
+);
 
-// Replace with your contract ABI
+// Your contract ABI - focus on the relevant functions and events
 const contractAbi = [
-  "event RequestBetResolution(uint256 betId)",
-  "function resolveBetWithFDC(uint256 betId, bytes abi_encoded_data) external",
+  // Events
+  "event BetsExpired()",
+  "event BetPlaced(address indexed player)",
+  "event winnersPicked(bool isFor)",
+  "event randomWinnerPicked(address indexed player)",
+
+  // Functions
+  "function changeBetStateToObservationPeriodOngoing() external",
+  "function changeBetStateToBetBeingResolved() external",
+  "function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD) external returns (bool)",
+
+  // View functions
+  "function getBetStatus() external view returns (uint8)",
+  "function getTimeLeftToPlaceBetInSeconds() external view returns (uint256)",
 ];
 
 // Connect to your contract
-const contract = new ethers.Contract(
-  process.env.CONTRACT_ADDRESS,
+const contract = new Contract(
+  "0x4aC6E3F4c83805fa07953B31db844a547d11707c",
   contractAbi,
   wallet
 );
 
-// 🧠 Listen for the event
-contract.on("RequestBetResolution", async (betId) => {
-  console.log(`🪙 Bet ${betId.toString()} needs to be resolved`);
+// Status enum mapping for better readability
+const BetStatus = {
+  YetToBeStarted: 0,
+  BettingPeriodOngoing: 1,
+  ObservationPeriodOnGoing: 2,
+  BetBeingResolved: 3,
+  BetEnded: 4,
+};
 
+// Main function to monitor and resolve bets
+async function monitorAndResolveBets() {
+  console.log("🔍 Starting bet monitoring service with FDC attestation...");
+
+  // Listen for BetsExpired event
+  contract.on("BetsExpired", async () => {
+    console.log("📢 BetsExpired event detected!");
+    await checkAndResolveBet();
+  });
+
+  // Also check periodically in case we missed events
+  setInterval(async () => {
+    await checkAndResolveBet();
+  }, 5 * 60 * 1000); // Check every 5 minutes
+
+  // Initial check
+  await checkAndResolveBet();
+}
+
+async function checkAndResolveBet() {
   try {
-    // 🧠 Call FDC with CoinGecko API
-    const response = await axios.post(
-      "https://attestation-provider-testnet.flare.network/attestations/json-api/request",
-      {
-        url: "https://api.coingecko.com/api/v3/coins/ethereum-name-service/market_chart?vs_currency=usd&days=7",
-        postprocessJq: ".prices | map(.[1]) | max",
-        abi_signature: "value(uint256)",
-      },
-      { headers: { "Content-Type": "application/json" } }
-    );
+    const status = await contract.getBetStatus();
+    const _status = Number(status);
+    console.log("Status:", status);
+    console.log("Status:", _status);
 
-    const abiData = response.data.abi_encoded_data;
+    if (status === BetStatus.BettingPeriodOngoing) {
+      const timeLeft = await contract.getTimeLeftToPlaceBetInSeconds();
 
-    // 💥 Call the smart contract with this data
-    const tx = await contract.resolveBetWithFDC(betId, abiData);
-    await tx.wait();
-    console.log(`✅ Bet ${betId.toString()} resolved with FDC data.`);
+      if (timeLeft <= 0) {
+        console.log("⏰ Betting period ended, changing to observation period");
+        const tx = await contract.changeBetStateToObservationPeriodOngoing();
+        await tx.wait();
+        console.log("✅ Changed to observation period");
+      } else {
+        console.log(
+          `⏳ Betting period ongoing, ${timeLeft.toString()} seconds left`
+        );
+      }
+    } else if (status === BetStatus.ObservationPeriodOnGoing) {
+      console.log(
+        "🔍 Observation period ongoing, checking if it's time to resolve"
+      );
+
+      // Attempt to change state to BetBeingResolved
+      // This will only succeed if the observation period is truly over
+      try {
+        const tx = await contract.changeBetStateToBetBeingResolved();
+        await tx.wait();
+        console.log("✅ Changed to bet being resolved");
+
+        // Now resolve the bet with price data
+        await fetchPriceDataAndResolveBet();
+      } catch (err) {
+        console.log("Observation period not yet complete");
+      }
+    } else if (status === BetStatus.BetBeingResolved) {
+      console.log("🎲 Bet is ready to be resolved!");
+      await fetchPriceDataAndResolveBet();
+    }
   } catch (err) {
-    console.error("❌ Error resolving bet:", err);
+    console.error("❌ Error checking bet status:", err);
   }
-});
+}
+
+async function fetchPriceDataAndResolveBet() {
+  try {
+    console.log("📊 Requesting ENS price data directly from CoinGecko...");
+
+    // The main URL for CoinGecko ENS price data
+    const coinGeckoUrl =
+      "https://api.coingecko.com/api/v3/coins/ethereum-name-service/market_chart?vs_currency=usd&days=1";
+
+    // Make a direct GET request to CoinGecko
+    const response = await axios.get(coinGeckoUrl);
+
+    // Extract the prices array from the response
+    const prices = response.data.prices.map((pricePoint) => pricePoint[1]);
+
+    // Calculate max and min prices (similar to the JQ logic)
+    const maxPrice = Math.floor(Math.max(...prices) * 1000000);
+    const minPrice = Math.floor(Math.min(...prices) * 1000000);
+
+    console.log(`Maximum price: ${maxPrice} (scaled by 1M)`);
+    console.log(`Minimum price: ${minPrice} (scaled by 1M)`);
+
+    // Call the contract's resolveBetWithFDC function with the calculated prices
+    console.log("🎮 Resolving bet with price data...");
+    const tx = await contract.resolveBetWithFDC(maxPrice, minPrice);
+    const receipt = await tx.wait();
+
+    // Log the winner side
+    const winnerSide = await getWinnerSide(receipt);
+    console.log(`🏆 Bet resolved! Winner: ${winnerSide}`);
+
+    return receipt;
+  } catch (err) {
+    console.error("❌ Error resolving bet with price data:", err);
+    console.error(err.message);
+    if (err.response && err.response.data) {
+      console.error("Error response data:", err.response.data);
+    }
+  }
+}
+
+// Keep your getWinnerSide function as is
+async function getWinnerSide(receipt) {
+  // Parse transaction receipt to find the winnersPicked event
+  const winnerEvent = receipt.logs
+    .map((log) => {
+      try {
+        return contract.interface.parseLog(log);
+      } catch (e) {
+        return null;
+      }
+    })
+    .filter((parsedLog) => parsedLog && parsedLog.name === "winnersPicked")[0];
+
+  if (winnerEvent) {
+    return winnerEvent.args[0] ? "FOR side" : "AGAINST side";
+  }
+  return "Unknown";
+}
+
+// To run just this function for testing
+/* fetchPriceDataAndResolveBet(); */
+
+// Or keep your original monitoring function that calls this
+monitorAndResolveBets();

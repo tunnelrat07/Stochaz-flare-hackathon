@@ -18,11 +18,31 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
-              <a href="/">
+              <a href="/" className="px-10">
                 <div className="flex-shrink-0 flex items-center">
                   <Dices className="h-10 w-10" />
                   <span className="ml-2 text-xl font-bold">Stochaz</span>
                 </div>
+              </a>
+              <a
+                href="/"
+                className="px-3 py-2 rounded-md text-sm font-medium text-fuchsia-400 hover:text-fuchsia-300"
+              >
+                Home
+              </a>
+              <a
+                href="https://coinmarketcap.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-fuchsia-300"
+              >
+                Markets
+              </a>
+              <a
+                href="/learnmore"
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-fuchsia-300"
+              >
+                Learn More
               </a>
             </div>
 

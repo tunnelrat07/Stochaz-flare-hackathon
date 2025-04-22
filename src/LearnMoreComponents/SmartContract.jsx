@@ -60,7 +60,7 @@ export default function SmartContract({
               </div>
             </div>
             {contractExpanded && (
-              <div className="relative overflow-auto p-4 bg-gray-900 max-h-200">
+              <div className="relative overflow-auto p-4 bg-gray-900 max-h-[500px]">
                 <style>{`
                     .code-container {
                       border-radius: 0.5rem;

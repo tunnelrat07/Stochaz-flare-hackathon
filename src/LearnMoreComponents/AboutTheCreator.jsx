@@ -24,14 +24,14 @@ export default function AboutTheCreator() {
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
               <div className="w-32 h-32 bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
                 <img
-                  src="/api/placeholder/128/128"
+                  src="https://avatars.githubusercontent.com/u/190159700?v=4"
                   alt="Creator"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-white mb-2">
-                  Your Name
+                  Ashish Deshpande
                 </h3>
                 <p className="text-gray-300 mb-6">
                   Blockchain Developer & DeFi Enthusiast
@@ -45,25 +45,25 @@ export default function AboutTheCreator() {
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <a
-                    href="https://github.com/yourusername"
+                    href="https://github.com/tunnelrat07"
                     className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     <Github className="h-5 w-5 mr-2" />
-                    <span>github.com/yourusername</span>
+                    <span>Github</span>
                   </a>
                   <a
-                    href="https://twitter.com/yourusername"
+                    href="https://x.com/mundane_league7"
                     className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     <Twitter className="h-5 w-5 mr-2" />
-                    <span>@yourusername</span>
+                    <span>Twitter</span>
                   </a>
                   <a
-                    href="mailto:you@example.com"
+                    href="mailto:reachashish2004@gmail.com"
                     className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     <Mail className="h-5 w-5 mr-2" />
-                    <span>you@example.com</span>
+                    <span>Mail</span>
                   </a>
                 </div>
               </div>
