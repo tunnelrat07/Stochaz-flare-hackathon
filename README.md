@@ -1,293 +1,425 @@
-# ENS Price Oracle Betting System
+# Stochaz - Decentralized Betting Platform
 
 ## Overview
 
-This repository contains a decentralized betting platform deployed on the Flare Network (Coston2 testnet) that allows users to place bets on the price movement of the Ethereum Name Service (ENS) token. The system uses real-world price data from CoinGecko to determine winners, with an automated resolution mechanism that ensures fair and transparent outcomes.
+Stochaz is a decentralized betting platform built on the Flare Coston2 testnet that enables users to place bets on real-world events including:
 
-## Table of Contents
+- Stock price movements
+- Cryptocurrency token price changes
+- Weather fluctuations
+- Sporting event outcomes
+- Any measurable external data point
 
-- [Architecture](#architecture)
-- [Getting Started](#getting-started)
-- [Technical Details](#technical-details)
-- [Bet Lifecycle](#bet-lifecycle)
-- [Monitoring Service](#monitoring-service)
-- [CoinGecko Integration](#coingecko-integration)
-- [Contract Events](#contract-events)
-- [Environment Setup](#environment-setup)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+The platform leverages Flare Network's innovative oracle solutions:
 
-## Architecture
+- **Flare Time Series Oracle (FTSO)**: Provides reliable price feeds
+- **Flare Data Connector (FDC)**: Securely accesses external data sources
+- **Flare Random Number Generator**: Ensures fair distribution of rewards
 
-### Smart Contract
+## Technical Architecture
 
-The system is built around a primary smart contract deployed at: `0x4aC6E3F4c83805fa07953B31db844a547d11707c` on the Coston2 testnet. The contract manages the entire betting lifecycle:
+### Smart Contract Design
 
-1. **Betting Period**: Users place bets on whether the ENS token price will go UP (FOR) or DOWN (AGAINST)
-2. **Observation Period**: Betting closes and the system monitors ENS price movements
-3. **Resolution Phase**: The contract resolves the bet based on maximum and minimum price data from CoinGecko
-4. **Winner Selection & Payout**: Winners are determined and rewards are distributed
+The core of Stochaz is a Solidity smart contract (`FlareBetting.sol`) deployed on the Flare Coston2 testnet.
 
-### Automated Oracle Service
+#### State Machine Implementation
 
-The repository includes a Node.js service that automates bet monitoring and resolution. This service:
+The contract implements a robust state machine with five distinct states:
 
-- Monitors the contract state continuously
-- Transitions bet states automatically when conditions are met
-- Fetches ENS price data from CoinGecko
-- Resolves bets by submitting price data to the smart contract
-- Logs all activities for transparency and debugging
+```solidity
+enum BetStatus {
+    YetToBeStarted,
+    BettingPeriodOngoing,
+    ObservationPeriodOnGoing,
+    BetBeingResolved,
+    BetEnded
+}
+```
 
-## Getting Started
+State transitions are secured through modifiers:
+
+```solidity
+modifier whileBettingPeriodOngoing() {
+    require((s_isBetCreated == true) && (_betStatus == BetStatus.BettingPeriodOngoing),
+            "The bet isn't running");
+    _;
+}
+
+modifier whileObservationPeriodOngoing() {
+    require((s_isBetCreated == true) && (_betStatus == BetStatus.ObservationPeriodOnGoing),
+            "The bet isn't running");
+    _;
+}
+```
+
+#### Flare Network Integrations
+
+**FTSO Integration**:
+
+```solidity
+function getFtsoV2CurrentFeedValues()
+    public
+    view
+    returns (uint256 _feedValues, uint64 _timestamp)
+{
+    return ftsoV2.getFeedByIdInWei(bytes21(0x01464c522f55534400000000000000000000000000));
+}
+```
+
+**Random Number Generation**:
+
+```solidity
+function getSecureRandomNumber()
+    public
+    view
+    returns (uint256 randomNumber, bool isSecure, uint256 timestamp)
+{
+    (randomNumber, isSecure, timestamp) = randomV2.getRandomNumber();
+    require(isSecure, "Random number is not secure");
+    return (randomNumber, isSecure, timestamp);
+}
+```
+
+#### Bet Resolution Logic
+
+The contract implements a sophisticated resolution mechanism:
+
+```solidity
+function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD)
+    external
+    whileBetBeingResolved
+    returns (bool isForSideWinner)
+{
+    // Compare against target
+    bool conditionMet = (maxPriceInUSD - minPriceInUSD >= i_maximumSpreadInUSD);
+
+    if(conditionMet) {
+        // "For" side wins
+        if(s_forBettersAddresses.length != 0) {
+            // Pick random winner for bonus
+            (uint256 randomNumber, , ) = getSecureRandomNumber();
+            uint256 randomIndex = randomNumber % s_forBettersAddresses.length;
+            address payable randomRewardWinner = s_forBettersAddresses[randomIndex];
+            s_forBettersToAmountBetInUSD[randomRewardWinner] += s_randomRewardInUSD;
+            emit randomWinnerPicked(randomRewardWinner);
+        }
+
+        // Distribute winnings to all "For" bettors
+        for(uint256 i=0; i<s_forBettersAddresses.length; i++) {
+            address payable winner = s_forBettersAddresses[i];
+            uint256 amountToBePaid = s_forBettersToAmountBetInUSD[winner];
+            s_forBettersToAmountBetInUSD[winner] += amountToBePaid/2;
+        }
+
+        // Reset "Against" bettors amounts
+        for(uint256 i=0; i<s_againstBettersAddresses.length; i++) {
+            address payable loser = s_againstBettersAddresses[i];
+            s_againstBettersToAmountBetInUSD[loser] = 0;
+        }
+
+        emit winnersPicked(true);
+        isForSideWinner = true;
+    } else {
+        // "Against" side wins - similar logic for against winners
+        // ...
+    }
+
+    _betStatus = BetStatus.BetEnded;
+    return isForSideWinner;
+}
+```
+
+### Frontend Application
+
+#### Component Structure
+
+The React frontend uses ThirdWeb SDK for blockchain interactions and features a state-responsive UI architecture:
+
+1. **Event Cards**: Display active betting opportunities
+2. **State-specific Components**:
+   - `BetNotStarted`: Pre-betting information
+   - `BettingPeriodOngoing`: Core betting interface
+   - `ObservationPeriodOngoing`: Display during result observation
+   - `BetBeingResolved`: Bet resolution process visualization
+   - `BetEnded`: Results and withdrawal options
+
+#### BettingPeriodOngoing Component
+
+The component displays real-time betting statistics and allows users to place bets:
+
+```jsx
+// Key contract read operations
+const { data: totalAgainstBettedAmountInUSD } = useReadContract({
+  contract,
+  method: "function getTotalAgainstBettedAmountInUSD() view returns (uint256)",
+  params: [],
+});
+
+const { data: totalForBettedAmountInUSD } = useReadContract({
+  contract,
+  method: "function getTotalForBettedAmountInUSD() view returns (uint256)",
+  params: [],
+});
+
+// Time remaining calculation with local sync
+useEffect(() => {
+  if (
+    timeRemainingInSecondsTillResult !== undefined &&
+    localTimeRemaining === null
+  ) {
+    setLocalTimeRemaining(Number(timeRemainingInSecondsTillResult));
+  }
+
+  const timer = setInterval(() => {
+    setLocalTimeRemaining((prevTime) => {
+      if (prevTime !== null && prevTime > 0) {
+        return prevTime - 1;
+      }
+      return prevTime;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [timeRemainingInSecondsTillResult]);
+```
+
+## Betting Mechanics
+
+### Bet Creation
+
+The contract owner must initialize a bet by providing liquidity to ensure solvency:
+
+```solidity
+function startBet() external payable onlyOwner {
+    if(msg.value < (convertUSDtoFLRinWei(i_maximumBetFromEitherTeamInUSD)/2 +
+                    convertUSDtoFLRinWei(s_randomRewardInUSD))) {
+        revert Betting__sendMoreGasToStartBet();
+    }
+    s_betCreationTimeStamp = block.timestamp;
+    s_isBetCreated = true;
+    _betStatus = BetStatus.BettingPeriodOngoing;
+}
+```
+
+### Bet Placement
+
+Users can bet "For" or "Against" a specified event outcome:
+
+```solidity
+function betFor(uint256 amountToBetInUSD) external payable onlyAfterBetHasStarted whileBetIsBettingPeriodOngoing {
+    require(s_amountBettedForInUSD + amountToBetInUSD <= i_maximumBetFromEitherTeamInUSD,
+            "Maximum bet amounts have been accepted");
+    require(msg.value >= convertUSDtoFLRinWei(amountToBetInUSD), "Send more");
+
+    if(s_forBettersToAmountBetInUSD[msg.sender] == 0) {
+        s_forBettersAddresses.push(payable(msg.sender));
+    }
+    s_forBettersToAmountBetInUSD[msg.sender] += amountToBetInUSD;
+    s_amountBettedForInUSD += amountToBetInUSD;
+}
+```
+
+### Payout Calculation
+
+Winners receive 1.5x their bet amount:
+
+- Original bet amount returned
+- 50% profit on their bet
+- One random winner receives a bonus reward from fees collected
+
+### Withdrawal Process
+
+After bet resolution, winners can withdraw their funds:
+
+```solidity
+function withdrawAmount(address payable user) external payable afterBetHasBeenResolved {
+    if(s_forBettersToAmountBetInUSD[user] != 0) {
+        (bool sent, ) = user.call{value: convertUSDtoFLRinWei(s_forBettersToAmountBetInUSD[user])}("");
+        require(sent, "Transfer failed");
+    }
+    if(s_againstBettersToAmountBetInUSD[user] != 0) {
+        (bool sent, ) = user.call{value: convertUSDtoFLRinWei(s_againstBettersToAmountBetInUSD[user])}("");
+        require(sent, "Transfer failed");
+    }
+}
+```
+
+## Challenges Faced
+
+### Smart Contract Automation
+
+One of the primary challenges encountered during development was automating the state transitions of the betting contract. Currently, there is no native automation framework for Flare smart contracts, which created hurdles for automating critical time-based state changes:
+
+- **Backend-Based Automation**: To overcome this limitation, we implemented a backend script that monitors event times and calls appropriate contract functions after predetermined durations.
+- **State Transition Scheduling**: The backend script handles scheduling for transitioning from betting period to observation period, and then to resolution state.
+- **Reliability Concerns**: This approach requires maintaining a constantly running server, introducing potential single points of failure.
+
+Looking forward, when Flare Network integrates a dedicated automation framework similar to Chainlink Automation or Gelato Network, these challenges will be greatly simplified. Native automation will eliminate the need for external scripts, making the platform more decentralized, reliable, and easier to maintain. Time-based state transitions would be handled directly on-chain, ensuring precise timing without requiring centralized infrastructure.
+
+### Modularity and Customization
+
+Another significant challenge was balancing platform modularity with data reliability:
+
+- **Limited Event Creation**: Currently, only the contract owner can create betting events, limiting the platform's scalability and user engagement.
+- **Data Source Trust**: Allowing users to create their own betting events would require trusting them to provide correct API endpoints for data fetching, introducing potential manipulation risks.
+- **Structural Improvements**: We identified opportunities to enhance the contract architecture using solidity structs like `BetEvents` to encapsulate betting event details.
+
+A more modular approach would enable users to create and start custom betting events while allowing other users to participate in them. This would significantly scale the platform's offerings and engagement. We're exploring solutions that leverage Flare's oracle capabilities to validate external data sources without compromising security, possibly through a reputation system or a governance-based approach for approving new data sources.
+
+## Technical Specifications
+
+### Smart Contract Parameters
+
+| Parameter                       | Description                                       |
+| ------------------------------- | ------------------------------------------------- |
+| `betFeesInUSD`                  | Fee collected for each bet                        |
+| `betPlacingInterval`            | Duration of the betting period (in days)          |
+| `maximumSpreadInUSD`            | Threshold price movement that defines bet outcome |
+| `maximumBetFromEitherTeamInUSD` | Maximum total bet amount allowed per side         |
+| `randomRewardInUSD`             | Bonus reward for one random winner                |
+
+### Flare Network Integrations
+
+#### FTSO (Flare Time Series Oracle)
+
+Stochaz leverages FTSO v2 for:
+
+- FLR/USD price feeds with block-latency updates (~1.8 seconds)
+- Price conversion for bet amounts denominated in USD
+- Decentralized data sourcing from ~100 independent providers
+- Zero-cost queries for real-time data
+
+#### Flare Random Number Generator
+
+Provides cryptographically secure random numbers used for:
+
+- Selection of random winner for bonus rewards
+- Fair distribution of incentives
+- Tamper-proof randomness source on-chain
+
+#### Flare Data Connector (FDC)
+
+- JSON API attestation with JQ transformations
+- Verifiable data integration from external sources
+- Secured data pathway for smart contract usage
+
+### Security Considerations
+
+- Owner deposits prevent contract insolvency
+- State transition controls prevent timing attacks
+- Secure random number generation ensures fair rewards
+- Maximum bet limits prevent economic attacks
+
+## Setup and Installation
 
 ### Prerequisites
 
 - Node.js v16+
 - npm or yarn
-- Flare Network account (Coston2 testnet)
-- Some test FLR tokens for gas fees
+- Flare Coston2 testnet wallet with FLR tokens
+- MetaMask or another Web3 wallet
 
-### Installation
+### Contract Deployment
 
 1. Clone the repository:
 
-   ```
-   git clone https://github.com/yourusername/ens-price-oracle-betting.git
-   cd ens-price-oracle-betting
+   ```bash
+   git clone https://github.com/your-repo/stochaz.git
+   cd stochaz
    ```
 
 2. Install dependencies:
 
-   ```
+   ```bash
    npm install
    ```
 
-3. Configure environment variables:
-
-   ```
-   cp .env.example .env
-   ```
-
-   Edit the `.env` file with your private key and other configuration settings.
-
-4. Run the monitoring service:
-   ```
-   npm start
+3. Deploy the contract to Flare Coston2 testnet:
+   ```bash
+   npx hardhat run scripts/deploy.js --network coston2
    ```
 
-## Technical Details
+### Frontend Setup
 
-### Smart Contract Interfaces
+1. Navigate to the frontend directory:
 
-The contract exposes the following key functions:
+   ```bash
+   cd frontend
+   ```
 
-```solidity
-// State transition functions
-function changeBetStateToObservationPeriodOngoing() external
-function changeBetStateToBetBeingResolved() external
-function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD) external returns (bool)
+2. Install dependencies:
 
-// View functions
-function getBetStatus() external view returns (uint8)
-function getTimeLeftToPlaceBetInSeconds() external view returns (uint256)
-```
+   ```bash
+   npm install
+   ```
 
-### Contract Events
+3. Configure the application by updating the contract address in `src/client.js`:
 
-The contract emits the following events:
+   ```javascript
+   const contract = getContract({
+     client: client,
+     chain: defineChain(114), // Flare Coston2 chain ID
+     address: "YOUR_DEPLOYED_CONTRACT_ADDRESS",
+   });
+   ```
 
-```solidity
-event BetsExpired()
-event BetPlaced(address indexed player)
-event winnersPicked(bool isFor)
-event randomWinnerPicked(address indexed player)
-```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-### Bet Status Enum
+## Operational Workflow
 
-```solidity
-enum BetStatus {
-  YetToBeStarted,       // 0
-  BettingPeriodOngoing, // 1
-  ObservationPeriodOnGoing, // 2
-  BetBeingResolved,     // 3
-  BetEnded              // 4
-}
-```
+### Contract Owner Operations
 
-## Bet Lifecycle
+1. **Deploy Contract**:
 
-The betting system follows a well-defined state machine:
+   - Set bet fees, betting period, observation period, and maximum spread
+   - Set maximum bet amount limits
 
-1. **Betting Period (Status 1)**
+2. **Start Bet**:
 
-   - Users can place bets on price movement (FOR or AGAINST)
-   - System tracks time remaining via `getTimeLeftToPlaceBetInSeconds()`
-   - Once time expires, monitoring service calls `changeBetStateToObservationPeriodOngoing()`
+   - Owner deposits initial liquidity
+   - Activates betting period
 
-2. **Observation Period (Status 2)**
+3. **State Management**:
+   - Transition from betting to observation period
+   - Transition from observation to resolution
+   - Provide external data for bet resolution
 
-   - Betting is closed
-   - System observes ENS price movements through CoinGecko
-   - Once observation period ends, service calls `changeBetStateToBetBeingResolved()`
+### User Operations
 
-3. **Resolution Phase (Status 3)**
+1. **Connect Wallet**:
 
-   - System fetches final price data from CoinGecko
-   - Maximum and minimum prices are calculated
-   - Service calls `resolveBetWithFDC(maxPrice, minPrice)`
-   - Smart contract determines winners based on price movement
+   - Connect Web3 wallet to the platform
+   - Ensure sufficient FLR tokens for betting
 
-4. **Bet Ended (Status 4)**
-   - Winners are announced via `winnersPicked` event
-   - Rewards are distributed automatically
-   - In some cases, a random winner may be selected (`randomWinnerPicked` event)
+2. **Place Bets**:
 
-## Monitoring Service
+   - Choose "For" or "Against" position
+   - Specify bet amount (typically fixed at 2 USD equivalent)
 
-The repository's main monitoring service (`index.js`) provides:
+3. **Monitor Status**:
 
-### Features
+   - Track bet progress through different states
+   - View real-time betting statistics
 
-- **Event-based Monitoring**: Listens for blockchain events like `BetsExpired`
-- **Polling Backup**: Periodically checks bet status in case events are missed
-- **Automatic State Transitions**: Handles state changes without manual intervention
-- **Price Data Fetching**: Retrieves ENS price data directly from CoinGecko
-- **Bet Resolution**: Submits price data to the smart contract for winner determination
-- **Detailed Logging**: Provides comprehensive logging for monitoring and debugging
+4. **Claim Winnings**:
+   - After bet resolution, winners can withdraw their funds
+   - Check for possible bonus rewards
 
-### Core Functions
+## Future Development
 
-- `monitorAndResolveBets()`: Main entry point that initiates monitoring
-- `checkAndResolveBet()`: Checks current bet status and takes appropriate action
-- `fetchPriceDataAndResolveBet()`: Retrieves ENS price data and resolves the bet
-- `getWinnerSide()`: Parses transaction receipts to determine winning side
-
-## CoinGecko Integration
-
-The system relies on CoinGecko's public API to obtain reliable ENS token price data:
-
-### Price Data Retrieval
-
-- **Endpoint**: `https://api.coingecko.com/api/v3/coins/ethereum-name-service/market_chart?vs_currency=usd&days=1`
-- **Data Processing**:
-  - Extracts price points from the response
-  - Calculates maximum and minimum prices
-  - Scales prices by multiplying by 1,000,000 (for precision in blockchain)
-  - Floors the values to eliminate decimal points
-
-### Direct API Integration
-
-The updated implementation fetches price data directly from CoinGecko without using the FDC attestation service:
-
-```javascript
-// Make a direct GET request to CoinGecko
-const response = await axios.get(coinGeckoUrl);
-
-// Extract the prices array from the response
-const prices = response.data.prices.map((pricePoint) => pricePoint[1]);
-
-// Calculate max and min prices
-const maxPrice = Math.floor(Math.max(...prices) * 1000000);
-const minPrice = Math.floor(Math.min(...prices) * 1000000);
-```
-
-## Environment Setup
-
-Create a `.env` file with the following configuration:
-
-```
-# Flare Network RPC endpoint
-RPC_URL=https://coston2-api.flare.network/ext/bc/C/rpc
-
-# Your private key (without 0x prefix)
-PRIVATE_KEY=your_private_key_here
-
-# Smart contract address
-CONTRACT_ADDRESS=0x4aC6E3F4c83805fa07953B31db844a547d11707c
-
-# Monitoring interval in milliseconds (default: 5 minutes)
-CHECK_INTERVAL=300000
-```
-
-⚠️ **SECURITY WARNING**: Never commit your `.env` file or expose your private key. Add `.env` to your `.gitignore` file.
-
-## Deployment
-
-### Running as a Service
-
-For production environments, set up the monitoring service to run continuously:
-
-#### Using PM2
-
-```bash
-npm install -g pm2
-pm2 start index.js --name "ens-betting-monitor"
-pm2 save
-pm2 startup
-```
-
-#### Using Docker
-
-```bash
-docker build -t ens-betting-monitor .
-docker run -d --name ens-betting-monitor ens-betting-monitor
-```
-
-### Monitoring and Logs
-
-To view logs and monitor the service:
-
-```bash
-# If using PM2
-pm2 logs ens-betting-monitor
-
-# If using Docker
-docker logs -f ens-betting-monitor
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Transaction Failures**
-
-   - Ensure your account has sufficient FLR for gas
-   - Check that the contract is in the expected state before calling state-transition functions
-
-2. **API Rate Limiting**
-
-   - CoinGecko may impose rate limits on their free API
-   - Implement appropriate retry logic with exponential backoff
-
-3. **Event Monitoring Issues**
-   - Ensure RPC provider supports WebSocket connections for reliable event monitoring
-   - The polling backup mechanism should catch missed events
-
-### Debug Mode
-
-Set `DEBUG=true` in your environment variables to enable verbose logging:
-
-```
-DEBUG=true npm start
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Multi-asset Betting**: Support for betting with various tokens
+- **Custom Bet Creation**: Allow users to create custom betting events
+- **Liquidity Pools**: Automated market-making for bet liquidity
+- **Mobile Application**: Native mobile experience
+- **Mainnet Deployment**: Migration from testnet to production environment
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT
 
----
+## Contact
 
-## Disclaimer
-
-This system is deployed on the Coston2 testnet and is for demonstration and educational purposes only. Always exercise caution when dealing with financial transactions on blockchain networks.
+For questions or support, please open an issue on our GitHub repository.
