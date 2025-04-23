@@ -133,6 +133,10 @@ function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD)
 
 ### Frontend Application
 
+### Landing Page
+
+![Landing Page](./public/landingPage.png)
+
 #### Component Structure
 
 The React frontend uses ThirdWeb SDK for blockchain interactions and features a state-responsive UI architecture:

@@ -1,20 +1,22 @@
 import React from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { TransactionButton, useSendTransaction } from "thirdweb/react";
-import { ethers } from "ethers";
+import { parseEther } from "ethers";
 import { prepareContractCall } from "thirdweb";
 import { AlertCircle } from "lucide-react";
 import { client } from "../../client";
+import { privateKeyToAccount } from "thirdweb/wallets";
 
 export default function BetNotStarted({ contract, event }) {
   const account = useActiveAccount();
   const PRIVATE_KEY =
-    "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
-  const ownerAccount = privateKeyAccount({
+    "0xea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
+  const ownerAccount = privateKeyToAccount({
     client,
     privateKey: PRIVATE_KEY,
   });
-  const isOwner = account?.address === contract.owner;
+  const isOwner =
+    account?.address === "0x4CaEC2a0C3902702631a785C9CAcb8925e0BE755";
   const { mutate: sendTransaction } = useSendTransaction();
 
   // Function to send the transaction
@@ -100,7 +102,7 @@ export default function BetNotStarted({ contract, event }) {
                 contract,
                 method: "function startBet() payable",
                 params: [],
-                value: ethers.utils.parseEther("990"),
+                value: parseEther("990"),
               });
               return tx;
             }}

@@ -8,7 +8,7 @@ import {
 import { ethers } from "ethers";
 import { prepareContractCall } from "thirdweb";
 import { Clock, Activity, Info } from "lucide-react";
-
+import DualCircularBetGraph from "./BettingPeriodOnGoingComponents/Circular";
 export default function BettingPeriodOngoing({ contract, event, betState }) {
   const [betSide, setBetSide] = useState(null);
   const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
@@ -312,6 +312,13 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
 
       {account && (
         <div className="bg-gray-900 rounded-lg p-4 mb-6">
+          <DualCircularBetGraph
+            maximumBetFromEitherTeamInUSD={_maximumBetFromEitherTeamInUSD}
+            totalForBettedAmountInUSD={_totalForBettedAmountInUSD}
+            totalAgainstBettedAmountInUSD={_totalAgainstBettedAmountInUSD}
+            amountBettedForByUser={_amountBettedForByUser}
+            amountBettedAgainstByUser={_amountBettedAgainstByUser}
+          />
           <h4 className="text-white text-lg mb-2">Your Bets</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-800 rounded-lg p-4">

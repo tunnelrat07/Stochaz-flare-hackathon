@@ -52,17 +52,17 @@ export default function Events({ activeTab, setActiveTab }) {
             <div className="flex items-center mt-1 text-sm">
               <span className="text-gray-400">Chain: {event.chain}</span>
               <span className="mx-2 text-gray-600">•</span>
-              <span className="flex items-center text-gray-400">
+              {/* <span className="flex items-center text-gray-400">
                 {event.endsIn
                   ? `Ends in: ${event.endsIn}`
                   : event.startsIn
                   ? `Starts in: ${event.startsIn}`
                   : `Completed: ${event.completedDate}`}
-              </span>
-              <span className="mx-2 text-gray-600">•</span>
-              <span className="flex items-center text-gray-400">
+              </span> */}
+              {/* <span className="mx-2 text-gray-600">•</span> */}
+              {/*               <span className="flex items-center text-gray-400">
                 {event.activity}
-              </span>
+              </span> */}
             </div>
           </div>
         </div>
@@ -90,7 +90,8 @@ export default function Events({ activeTab, setActiveTab }) {
       // 2: ObservationPeriodOngoing
       // 3: BetBeingResolved
       // 4: BetEnded
-      const status = Number(betStatus);
+      /* const status = Number(betStatus); */
+      const status = 1;
       console.log(status);
       switch (status) {
         case 0:

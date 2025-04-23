@@ -2,9 +2,9 @@ const bettingEvents = {
   live: [
     {
       id: 1,
-      title: "ENS Token Crosses $20 on Ethereum",
+      title: "Price of ENS Token moves by $5 tommorow",
       description:
-        "Will the ENS token price exceed $20 before the end of the week?",
+        "Will the difference between the maximum and the minimum price of the ENS token tommorow cross $5 ?",
       chain: "Flare Testnet Coston2",
       endsIn: "3d 8h",
       oracle: "Flare FTSO Price Feed",

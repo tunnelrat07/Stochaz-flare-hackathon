@@ -8,6 +8,7 @@ import { parseEther } from "ethers";
 import { prepareContractCall } from "thirdweb";
 import { Clock, Activity, Info } from "lucide-react";
 import { useSendTransaction } from "thirdweb/react";
+import DualCircularBetGraph from "./BettingPeriodOnGoingComponents/Circular";
 
 export default function BettingPeriodOngoing({ contract, event, betState }) {
   const [betSide, setBetSide] = useState(null);
@@ -21,6 +22,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
         "function convertUSDtoFLRinWei(uint256 amountUSD) view returns (uint256)",
       params: [2],
     });
+
   const _usdToFLRinWei = usdToFLRinWei ? Number(usdToFLRinWei) : 0;
   const {
     data: amountBettedAgainstByUser,
@@ -214,6 +216,17 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
 
   return (
     <div className="px-4 py-3 bg-slate-950 border-t border-gray-800">
+      {account && (
+        <div className="bg-gray-900 rounded-lg p-4 mb-6">
+          <DualCircularBetGraph
+            maximumBetFromEitherTeamInUSD={_maximumBetFromEitherTeamInUSD}
+            totalForBettedAmountInUSD={_totalForBettedAmountInUSD}
+            totalAgainstBettedAmountInUSD={_totalAgainstBettedAmountInUSD}
+            amountBettedForByUser={_amountBettedForByUser}
+            amountBettedAgainstByUser={_amountBettedAgainstByUser}
+          />
+        </div>
+      )}
       <p className="text-gray-300 mb-4">{event.description}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
