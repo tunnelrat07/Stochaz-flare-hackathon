@@ -18,6 +18,8 @@ The platform leverages Flare Network's innovative oracle solutions:
 
 ## Technical Architecture
 
+![Technical Architecture Illustration](./public//Flar.png)
+
 ### Smart Contract Design
 
 The core of Stochaz is a Solidity smart contract (`FlareBetting.sol`) deployed on the Flare Coston2 testnet.
