@@ -34,36 +34,36 @@ The React frontend uses ThirdWeb SDK for blockchain interactions and features a 
 2. **State-specific Components**:
    ![YetToStartBet](./public/BetYetToBeStarted.png)
 
-   - `BetNotStarted`: Pre-betting information -
-     The owner of the contract sees a button to start the bet, and other users can only participate once the contract owner starts the bet.
+- `BetNotStarted`: Pre-betting information -
+  The owner of the contract sees a button to start the bet, and other users can only participate once the contract owner starts the bet.
 
-     ![BettingStats](./public/BettingStats.png)
+![BettingStats](./public/BettingStats.png)
 
-     - `BettingPeriodOngoing`: Core betting interface
-       During this phase, users can access real-time aggregate betting statistics.
+- `BettingPeriodOngoing`: Core betting interface
+  During this phase, users can access real-time aggregate betting statistics.
 
-     ![InteractWithTheContract](./public/CoreBettingInterface.png)
-     Users can also see their individual betting positions, and are able to place "For" and "Against" bets through the frontend, which serves as an interface to the underlying smart contract.
+![InteractWithTheContract](./public/CoreBettingInterface.png)
+Users can also see their individual betting positions, and are able to place"For" and "Against" bets through the frontend, which serves as an interfaceto the underlying smart contract.
 
-     ![ObservationPeriodOngoing](./public/Observation.png)
+![ObservationPeriodOngoing](./public/Observation.png)
 
-     - `ObservationPeriodOngoing`: Display during result observation
-       During this phase, users can view real-time betting statistics, monitor their own positions, and see a live countdown of the time remaining until the bet is resolved, while the system awaits final outcome determination.
+- `ObservationPeriodOngoing`: Display during result observation
+  During this phase, users can view real-time betting statistics, monitor their own positions, and see a live countdown of the time remaining until the bet is resolved, while the system awaits final outcome determination.
 
-     ![ResolvingBet](./public/Resolving%20Bet.png)
+![ResolvingBet](./public/Resolving%20Bet.png)
 
-     - `BetBeingResolved`: Users can see a loader while the bet is being resolved
+- `BetBeingResolved`: Users can see a loader while the bet is being resolved
 
-     ![WinnerMessage](./public/WithdrawFundsUser.png)
+![WinnerMessage](./public/WithdrawFundsUser.png)
 
-     - `BetEnded`: Results and withdrawal options
-       In this phase, users see the resolved outcome of the bet. Players on the winning side are presented with a "Withdraw Funds" option along with a congratulatory message.
+- `BetEnded`: Results and withdrawal options
+  In this phase, users see the resolved outcome of the bet. Players on the winning side are presented with a "Withdraw Funds" option along with a congratulatory message.
 
-     ![RandomWinnerMessage](./public/WithdrawFundsRandomREwardWinner.png)
-     Additionally, the randomly selected bonus winner (from the winning side) sees a special message indicating they’ve won the bonus and can withdraw their reward with the added bonus.
+![RandomWinnerMessage](./public/WithdrawFundsRandomREwardWinner.png)
+Additionally, the randomly selected bonus winner (from the winning side) sees a special message indicating they’ve won the bonus and can withdraw their reward with the added bonus.
 
-     ![LoserMessage](./public/BetLost.png)
-     Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
+![LoserMessage](./public/BetLost.png)
+Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
 
 ### Smart Contract Design
 
@@ -343,7 +343,6 @@ Provides cryptographically secure random numbers used for:
 
    ```bash
    git clone https://github.com/your-repo/stochaz.git
-   cd stochaz
    ```
 
 2. Install dependencies:
@@ -352,17 +351,12 @@ Provides cryptographically secure random numbers used for:
    npm install
    ```
 
-3. Deploy the contract to Flare Coston2 testnet:
-   ```bash
-   npx hardhat run scripts/deploy.js --network coston2
-   ```
-
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
 
    ```bash
-   cd frontend
+   cd src
    ```
 
 2. Install dependencies:
