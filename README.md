@@ -1,9 +1,9 @@
 # Stochaz - Decentralized Betting Platform
 
-## Watch the demo👇
+## Watch the demo 👇
 
 <a href="https://www.youtube.com/watch?v=Mgb7fql2xmc" target="_blank">
-  <img src="./public/YTlogo.png" alt="Watch the video" />
+  <p style="font-size: 1.5em;">Stochaz - Flare Hackathon 2025 (Encode Club)</p>
 </a>
 
 ## Overview
