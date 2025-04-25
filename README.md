@@ -20,6 +20,7 @@ The platform leverages Flare Network's innovative oracle solutions:
 
 ![Technical Architecture Illustration](./public//Flar.png)
 
+<div style="font-size: 1.5em;">
 ### Frontend Application
 
 ### Landing Page
@@ -64,6 +65,8 @@ Additionally, the randomly selected bonus winner (from the winning side) sees a 
 
 ![LoserMessage](./public/BetLost.png)
 Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
+
+</div>
 
 ### Smart Contract Design
 
