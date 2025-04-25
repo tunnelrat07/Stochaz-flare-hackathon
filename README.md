@@ -1,5 +1,9 @@
 # Stochaz - Decentralized Betting Platform
 
+## Watch the demo👇
+
+[![Watch the video](./public/FinalLAndingPage.png)](https://www.youtube.com/watch?v=Mgb7fql2xmc)
+
 ## Overview
 
 Stochaz is a decentralized betting platform built on the Flare Coston2 testnet that enables users to place bets on real-world events including:
@@ -21,6 +25,7 @@ The platform leverages Flare Network's innovative oracle solutions:
 ![Technical Architecture Illustration](./public//Flar.png)
 
 <div style="font-size: 1.5em;">
+
 ### Frontend Application
 
 ### Landing Page
