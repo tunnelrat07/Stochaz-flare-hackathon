@@ -20,9 +20,54 @@ The platform leverages Flare Network's innovative oracle solutions:
 
 ![Technical Architecture Illustration](./public//Flar.png)
 
+### Frontend Application
+
+### Landing Page
+
+![Landing Page](./public/FinalLAndingPage.png)
+
+#### Component Structure
+
+The React frontend uses ThirdWeb SDK for blockchain interactions and features a state-responsive UI architecture:
+
+1. **Event Cards**: Display active betting opportunities
+2. **State-specific Components**:
+   ![YetToStartBet](./public/BetYetToBeStarted.png)
+
+   - `BetNotStarted`: Pre-betting information -
+     The owner of the contract sees a button to start the bet, and other users can only participate once the contract owner starts the bet.
+
+     ![BettingStats](./public/BettingStats.png)
+
+     - `BettingPeriodOngoing`: Core betting interface
+       During this phase, users can access real-time aggregate betting statistics.
+
+     ![InteractWithTheContract](./public/CoreBettingInterface.png)
+     Users can also see their individual betting positions, and are able to place "For" and "Against" bets through the frontend, which serves as an interface to the underlying smart contract.
+
+     ![ObservationPeriodOngoing](./public/Observation.png)
+
+     - `ObservationPeriodOngoing`: Display during result observation
+       During this phase, users can view real-time betting statistics, monitor their own positions, and see a live countdown of the time remaining until the bet is resolved, while the system awaits final outcome determination.
+
+     ![ResolvingBet](./public/Resolving%20Bet.png)
+
+     - `BetBeingResolved`: Users can see a loader while the bet is being resolved
+
+     ![WinnerMessage](./public/WithdrawFundsUser.png)
+
+     - `BetEnded`: Results and withdrawal options
+       In this phase, users see the resolved outcome of the bet. Players on the winning side are presented with a "Withdraw Funds" option along with a congratulatory message.
+
+     ![RandomWinnerMessage](./public/WithdrawFundsRandomREwardWinner.png)
+     Additionally, the randomly selected bonus winner (from the winning side) sees a special message indicating they’ve won the bonus and can withdraw their reward with the added bonus.
+
+     ![LoserMessage](./public/BetLost.png)
+     Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
+
 ### Smart Contract Design
 
-The core of Stochaz is a Solidity smart contract (`FlareBetting.sol`) deployed on the Flare Coston2 testnet.
+The core of Stochaz is a Solidity smart contract (`FlareBetting.sol`) deployed on the [Flare Coston2 testnet](https://coston2-explorer.flare.network/address/0x837B83ec2A8B857735Ffdf3c182BBF5893dB6d66).
 
 #### State Machine Implementation
 
@@ -154,80 +199,6 @@ function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD)
     _betStatus = BetStatus.BetEnded;
     return isForSideWinner;
 }
-```
-
-### Frontend Application
-
-### Landing Page
-
-![Landing Page](./public/FinalLAndingPage.png)
-
-#### Component Structure
-
-The React frontend uses ThirdWeb SDK for blockchain interactions and features a state-responsive UI architecture:
-
-1. **Event Cards**: Display active betting opportunities
-2. **State-specific Components**:
-
-   - `BetNotStarted`: Pre-betting information -
-     The owner of the contract sees a button to start the bet, and other users can only participate once the contract owner starts the bet.
-     ![YetToStartBet](./public/BetYetToBeStarted.png)
-   - `BettingPeriodOngoing`: Core betting interface
-     During this phase, users can access real-time aggregate betting statistics.
-     ![BettingStats](./public/BettingStats.png)
-     Users can also see their individual betting positions, and are able to place "For" and "Against" bets through the frontend, which serves as an interface to the underlying smart contract.
-     ![InteractWithTheContract](./public/CoreBettingInterface.png)
-   - `ObservationPeriodOngoing`: Display during result observation
-     During this phase, users can view real-time betting statistics, monitor their own positions, and see a live countdown of the time remaining until the bet is resolved, while the system awaits final outcome determination.
-     ![ObservationPeriodOngoing](./public/Observation.png)
-   - `BetBeingResolved`: Users can see a loader while the bet is being resolved
-     ![ResolvingBet](./public/Resolving%20Bet.png)
-   - `BetEnded`: Results and withdrawal options
-     In this phase, users see the resolved outcome of the bet. Players on the winning side are presented with a "Withdraw Funds" option along with a congratulatory message.
-     ![WinnerMessage](./public/WithdrawFundsUser.png)
-     Additionally, the randomly selected bonus winner (from the winning side) sees a special message indicating they’ve won the bonus and can withdraw their reward with the added bonus.
-     ![RandomWinnerMessage](./public/WithdrawFundsRandomREwardWinner.png)
-     Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
-     ![LoserMessage](./public/BetLost.png)
-
-#### BettingPeriodOngoing Component
-
-The component displays real-time betting statistics and allows users to place bets:
-
-```jsx
-// Key contract read operations
-const { data: totalAgainstBettedAmountInUSD } = useReadContract({
-  contract,
-  method: "function getTotalAgainstBettedAmountInUSD() view returns (uint256)",
-  params: [],
-});
-
-const { data: totalForBettedAmountInUSD } = useReadContract({
-  contract,
-  method: "function getTotalForBettedAmountInUSD() view returns (uint256)",
-  params: [],
-});
-
-// Time remaining calculation with local sync
-useEffect(() => {
-  if (
-    timeRemainingInSecondsTillResult !== undefined &&
-    localTimeRemaining === null
-  ) {
-    setLocalTimeRemaining(Number(timeRemainingInSecondsTillResult));
-  }
-
-  const timer = setInterval(() => {
-    setLocalTimeRemaining((prevTime) => {
-      if (prevTime !== null && prevTime > 0) {
-        return prevTime - 1;
-      }
-      return prevTime;
-    });
-  }, 1000);
-
-  return () => clearInterval(timer);
-}, [timeRemainingInSecondsTillResult]);
 ```
 
 ## Betting Mechanics
