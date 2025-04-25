@@ -2,7 +2,9 @@
 
 ## Watch the demo👇
 
-[![Watch the video](./public/FinalLAndingPage.png)](https://www.youtube.com/watch?v=Mgb7fql2xmc)
+<a href="https://www.youtube.com/watch?v=Mgb7fql2xmc" target="_blank">
+  <img src="./public/YTlogo.png" alt="Watch the video" />
+</a>
 
 ## Overview
 
