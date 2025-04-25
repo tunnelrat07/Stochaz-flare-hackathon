@@ -32,7 +32,7 @@ const contractAbi = [
 
 // Connect to your contract
 const contract = new Contract(
-  "0x4aC6E3F4c83805fa07953B31db844a547d11707c",
+  "0x837B83ec2A8B857735Ffdf3c182BBF5893dB6d66",
   contractAbi,
   wallet
 );
@@ -128,13 +128,15 @@ async function fetchPriceDataAndResolveBet() {
     // Calculate max and min prices (similar to the JQ logic)
     const maxPrice = Math.floor(Math.max(...prices) * 1000000);
     const minPrice = Math.floor(Math.min(...prices) * 1000000);
+    const diff = Math.floor((maxPrice - minPrice) / 1000000);
 
     console.log(`Maximum price: ${maxPrice} (scaled by 1M)`);
     console.log(`Minimum price: ${minPrice} (scaled by 1M)`);
+    console.log(`difference ${diff}`);
 
     // Call the contract's resolveBetWithFDC function with the calculated prices
     console.log("🎮 Resolving bet with price data...");
-    const tx = await contract.resolveBetWithFDC(maxPrice, minPrice);
+    const tx = await contract.resolveBetWithFDC(diff);
     const receipt = await tx.wait();
 
     // Log the winner side
@@ -171,7 +173,7 @@ async function getWinnerSide(receipt) {
 }
 
 // To run just this function for testing
-/* fetchPriceDataAndResolveBet(); */
+fetchPriceDataAndResolveBet();
 
 // Or keep your original monitoring function that calls this
-monitorAndResolveBets();
+/* monitorAndResolveBets(); */

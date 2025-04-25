@@ -10,3 +10,7 @@ const provider = new JsonRpcProvider(
   );
   console.log("bytecode prefix:", code.slice(0, 10));
 })();
+
+setInterval(() => {
+  console.log("Hello");
+}, 1000);
