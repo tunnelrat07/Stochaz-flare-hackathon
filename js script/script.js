@@ -8,7 +8,7 @@ const provider = new JsonRpcProvider(
   "https://coston2-api.flare.network/ext/bc/C/rpc"
 );
 const wallet = new Wallet(
-  "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22",
+  process.env.PRIVATE_KEY,
   provider
 );
 
@@ -23,7 +23,7 @@ const contractAbi = [
   // Functions
   "function changeBetStateToObservationPeriodOngoing() external",
   "function changeBetStateToBetBeingResolved() external",
-  "function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD) external returns (bool)",
+  "function resolveBetWithFDC(uint256 difference) external returns (bool)",
 
   // View functions
   "function getBetStatus() external view returns (uint8)",
@@ -85,7 +85,7 @@ async function checkAndResolveBet() {
           `⏳ Betting period ongoing, ${timeLeft.toString()} seconds left`
         );
       }
-    } else if (status === BetStatus.ObservationPeriodOnGoing) {
+    } else if (_status === 2) {
       console.log(
         "🔍 Observation period ongoing, checking if it's time to resolve"
       );

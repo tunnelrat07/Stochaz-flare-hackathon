@@ -37,8 +37,7 @@ export default function Events({ activeTab, setActiveTab }) {
     params: [],
   });
 
-  const PRIVATE_KEY =
-    "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
+  const PRIVATE_KEY = process.env.PRIVATE_KEY; // Replace with the actual private key
   const ownerAccount = privateKeyToAccount({
     client,
     privateKey: PRIVATE_KEY,
@@ -166,7 +165,7 @@ export default function Events({ activeTab, setActiveTab }) {
       // 3: BetBeingResolved
       // 4: BetEnded
       const status = Number(betStatus);
-      /* const status = 4; */
+      /*       const status = 3; */
 
       switch (status) {
         case 0:
