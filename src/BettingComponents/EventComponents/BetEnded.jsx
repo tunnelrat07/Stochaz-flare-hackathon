@@ -7,7 +7,14 @@ import {
 } from "thirdweb/react";
 import { ethers } from "ethers";
 import { prepareContractCall } from "thirdweb";
-import { Award, Activity } from "lucide-react";
+import {
+  Award,
+  Activity,
+  Trophy,
+  Gift,
+  ChevronRight,
+  Star,
+} from "lucide-react";
 
 export default function BetEnded({ contract, event }) {
   const account = useActiveAccount();
@@ -51,6 +58,29 @@ export default function BetEnded({ contract, event }) {
     method: "function getBetStatus() view returns (uint8)",
     params: [],
   });
+  const {
+    data: amountBettedForOriginal,
+    isPending: isPendingamountBettedForOriginal,
+  } = useReadContract({
+    contract,
+    method:
+      "function getAmountBettedForByAddress__(address Address) view returns (uint256)",
+    params: [accountAddress],
+  });
+  const amountBettedForByUserOriginally = Number(amountBettedForOriginal);
+  const {
+    data: amountBettedAgainstOriginal,
+    isPending: isPendingamountBettedAgainstOriginal,
+  } = useReadContract({
+    contract,
+    method:
+      "function getAmountBettedAgainstByAddress__(address Address) view returns (uint256)",
+    params: [accountAddress],
+  });
+  const amountBettedAgainstByUserOriginally = Number(
+    amountBettedAgainstOriginal
+  );
+
   const _betStatus = betStatus ? Number(betStatus) : 0;
   const { data: bettingFeesInUSD, isPending: isPendingBettingFeesInUSD } =
     useReadContract({
@@ -114,13 +144,7 @@ export default function BetEnded({ contract, event }) {
       params: [],
     });
   const _randomRewardInUSD = randomRewardInUSD ? Number(randomRewardInUSD) : 0;
-  /*   const { data: secureRandomNumber, isPending: isPendingSecureRandomNumber } =
-    useReadContract({
-      contract,
-      method:
-        "function getSecureRandomNumber() view returns (uint256 randomNumber, bool isSecure, uint256 timestamp)",
-      params: [],
-    }); */
+
   const { data: timeLeftToPlaceBets, isPending: isPendingTimeLeftToPlaceBet } =
     useReadContract({
       contract,
@@ -187,185 +211,373 @@ export default function BetEnded({ contract, event }) {
     ? Number(timeRemainingInSecondsTillResult)
     : 0;
 
+  const { data: isFor, isPending: isPendingFor } = useReadContract({
+    contract,
+    method: "function getIsForSideWinner() view returns (bool)",
+    params: [],
+  });
+
+  const isForSideWinner = Boolean(isFor);
+
+  const { data: randomRewardWinner, isPending: isPendingRandomRewardWinner } =
+    useReadContract({
+      contract,
+      method: "function getRandomRewardWinner() view returns (address)",
+      params: [],
+    });
+  console.log(randomRewardWinner);
+  const isUserRandomRewardWinner = randomRewardWinner === accountAddress;
+  const isContractOwner =
+    accountAddress === "0x4CaEC2a0C3902702631a785C9CAcb8925e0BE755"; // This should be determined based on contract ownership
+  console.log(isUserRandomRewardWinner);
   // Format amounts for display
   const formatAmount = (amount) => {
     if (!amount) return "0";
     return ethers.utils.formatEther(amount);
   };
 
-  /*   // Determine if user won based on which side they bet on and which side won
-  const didUserWin = () => {
-    if (!winner || !userForBet || !userAgainstBet) return false;
-
-    const winnerSide = Number(winner) === 1 ? "for" : "against";
-    const userBetFor = Number(userForBet) > 0;
-    const userBetAgainst = Number(userAgainstBet) > 0;
-
-    return (
-      (winnerSide === "for" && userBetFor) ||
-      (winnerSide === "against" && userBetAgainst)
-    );
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
 
-  // Get winner team name
-  const getWinnerTeam = () => {
-    if (!winner) return "Unknown";
-    return Number(winner) === 1 ? "For" : "Against";
-  }; */
+  // Calculate winnings (approximate)
+  const calculateWinnings = () => {
+    if (isForSideWinner && _amountBettedForByUser > 0) {
+      // Calculate proportion of winnings based on user's contribution to winning side
+      const proportion = _amountBettedForByUser / _totalForBettedAmountInUSD;
+      return proportion * _totalPoolInUSD * 0.95; // Assuming 5% platform fee
+    } else if (!isForSideWinner && _amountBettedAgainstByUser > 0) {
+      const proportion =
+        _amountBettedAgainstByUser / _totalAgainstBettedAmountInUSD;
+      return proportion * _totalPoolInUSD * 0.95; // Assuming 5% platform fee
+    }
+    return 0;
+  };
 
-  const showWithdrawButton = true;
+  const estimatedWinnings = calculateWinnings();
+  const didUserWin =
+    (isForSideWinner && _amountBettedForByUser > 0) ||
+    (!isForSideWinner && _amountBettedAgainstByUser > 0);
 
   return (
-    <div className="px-4 py-3 bg-slate-950 border-t border-gray-800">
-      <p className="text-gray-300 mb-4">{event.description}</p>
+    <div className="px-6 py-6 bg-slate-950 border border-gray-800 rounded-xl">
+      {/* Event Description */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-white mb-2">Bet Event</h2>
+        <p className="text-gray-300">{event.description}</p>
+      </div>
 
-      {/* <div
-        className={`bg-gray-800 rounded-lg p-6 mb-6 border-l-4 ${
-          Number(winner) === 1 ? "border-blue-500" : "border-red-500"
-        }`}
+      {/* Winner Banner Section */}
+      <div
+        className={`relative overflow-hidden bg-gradient-to-r ${
+          isForSideWinner
+            ? "from-blue-900/40 to-blue-700/30"
+            : "from-red-900/40 to-red-700/30"
+        } rounded-xl p-6 mb-8 border border-gray-700`}
       >
+        <div className="absolute top-0 right-0 w-40 h-40 opacity-10">
+          <Trophy className="w-full h-full" />
+        </div>
+
         <div className="flex items-center mb-4">
-          <Award
-            className={`h-8 w-8 mr-3 ${
-              Number(winner) === 1 ? "text-blue-500" : "text-red-500"
+          <Trophy
+            className={`h-10 w-10 mr-4 ${
+              isForSideWinner ? "text-blue-400" : "text-red-400"
             }`}
           />
-          <h3 className="text-xl font-medium text-white">Bet Ended</h3>
+          <h3 className="text-2xl font-bold text-white">Winner Announced</h3>
         </div>
 
-        <p className="text-gray-300">
-          {Number(winner) === 1
-            ? "The event occurred as predicted. The 'For' side has won the bet."
-            : "The event did not occur as predicted. The 'Against' side has won the bet."}
-        </p>
-      </div> */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between">
+          <div>
+            <p className="text-lg text-gray-300 mb-2">
+              {isForSideWinner
+                ? "The event occurred as predicted."
+                : "The event did not occur as predicted."}
+            </p>
+            <div
+              className={`inline-flex items-center px-4 py-2 rounded-full ${
+                isForSideWinner
+                  ? "bg-blue-600/30 text-blue-300 border border-blue-500/50"
+                  : "bg-red-600/30 text-red-300 border border-red-500/50"
+              } font-medium text-lg`}
+            >
+              <span className="mr-2">Winner:</span>
+              <span className="font-bold">
+                {isForSideWinner ? "FOR" : "AGAINST"}
+              </span>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-400 mb-1">
-            Total Pool
-          </div>
-          <div className="text-xl font-bold text-white">${_totalPoolInUSD}</div>
-        </div>
-
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-400 mb-1">
-            Total "For" Bets
-          </div>
-          <div className="text-xl font-bold text-blue-400">
-            ${_totalForBettedAmountInUSD}
-          </div>
-        </div>
-
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-400 mb-1">
-            Total "Against" Bets
-          </div>
-          <div className="text-xl font-bold text-red-400">
-            ${_totalAgainstBettedAmountInUSD}
+          <div className="mt-4 md:mt-0 flex items-center">
+            <div className="px-4 py-3 bg-gray-800/70 rounded-lg">
+              <div className="text-sm text-gray-400">Total Pool</div>
+              <div className="text-xl font-bold text-white">
+                {formatCurrency(_totalPoolInUSD)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Statistics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-5 transition-all hover:bg-gray-800/70">
+          <div className="flex justify-between items-start mb-3">
+            <div className="text-sm font-medium text-gray-400">Total Bets</div>
+            <div className="bg-gray-700/50 rounded-full p-1">
+              <Award className="h-4 w-4 text-fuchsia-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-white">
+            {formatCurrency(_totalPoolInUSD)}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {_numberOfForBetters + _numberOfAgainstBetters} participants
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-5 transition-all hover:bg-gray-800/70">
+          <div className="flex justify-between items-start mb-3">
+            <div className="text-sm font-medium text-gray-400">"For" Bets</div>
+            <div className="bg-blue-900/50 rounded-full p-1">
+              <Award className="h-4 w-4 text-blue-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-blue-400">
+            {formatCurrency(_totalForBettedAmountInUSD)}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {_numberOfForBetters} participants
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-5 transition-all hover:bg-gray-800/70">
+          <div className="flex justify-between items-start mb-3">
+            <div className="text-sm font-medium text-gray-400">
+              "Against" Bets
+            </div>
+            <div className="bg-red-900/50 rounded-full p-1">
+              <Award className="h-4 w-4 text-red-400" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-red-400">
+            {formatCurrency(_totalAgainstBettedAmountInUSD)}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {_numberOfAgainstBetters} participants
+          </div>
+        </div>
+      </div>
+
+      {/* User Results Section */}
       {account && (
-        <div className="bg-gray-900 rounded-lg p-4 mb-6">
-          <h4 className="text-white text-lg mb-2">Your Results</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-800 rounded-lg p-4">
+        <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6 mb-8">
+          <h4 className="text-white text-lg font-bold mb-4 flex items-center">
+            <Award className="h-5 w-5 mr-2 text-fuchsia-400" />
+            Your Results
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-800/70 rounded-lg p-4 border border-gray-700">
               <div className="text-sm font-medium text-gray-400 mb-1">
                 Your "For" Bet
               </div>
               <div className="text-xl font-bold text-blue-400">
-                ${_amountBettedForByUser}
+                {formatCurrency(_amountBettedForByUser)}
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4">
+            <div className="bg-gray-800/70 rounded-lg p-4 border border-gray-700">
               <div className="text-sm font-medium text-gray-400 mb-1">
                 Your "Against" Bet
               </div>
               <div className="text-xl font-bold text-red-400">
-                ${_amountBettedAgainstByUser}
+                {formatCurrency(_amountBettedAgainstByUser)}
               </div>
             </div>
           </div>
 
-          {
-            <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-green-500">
-              <div className="flex items-center">
-                <Award className="h-6 w-6 mr-2 text-green-500" />
-                <div>
-                  <div className="text-green-400 font-medium">
+          {/* Original Bet Amounts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-800/70 rounded-lg p-4 border border-gray-700">
+              <div className="text-sm font-medium text-gray-400 mb-1">
+                Your Original "For" Bet
+              </div>
+              <div className="text-xl font-bold text-blue-400">
+                {formatCurrency(amountBettedForByUserOriginally)}
+              </div>
+            </div>
+
+            <div className="bg-gray-800/70 rounded-lg p-4 border border-gray-700">
+              <div className="text-sm font-medium text-gray-400 mb-1">
+                Your Original "Against" Bet
+              </div>
+              <div className="text-xl font-bold text-red-400">
+                {formatCurrency(amountBettedAgainstByUserOriginally)}
+              </div>
+            </div>
+          </div>
+
+          {didUserWin && (
+            <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 rounded-xl p-6 border border-green-700/50 mb-6">
+              <div className="flex items-center mb-3">
+                <Trophy className="h-8 w-8 mr-3 text-green-400" />
+                <div className="flex-1">
+                  <div className="text-green-400 font-bold text-lg">
                     Congratulations! You won!
                   </div>
-                  <div className="text-xl font-bold text-white">Reward:</div>
+                  <div className="text-gray-300">
+                    Your bet on the {isForSideWinner ? '"For"' : '"Against"'}{" "}
+                    side was successful.
+                  </div>
                 </div>
               </div>
 
-              {showWithdrawButton && (
-                <div className="mt-4">
-                  <TransactionButton
-                    transaction={() => {
-                      const tx = prepareContractCall({
-                        contract,
-                        method: "function withdrawAmount(address user) payable",
-                        params: [accountAddress],
-                      });
-                      return tx;
-                    }}
-                    onTransactionSent={(result) => {
-                      console.log(
-                        "Transaction submitted",
-                        result.transactionHash
-                      );
-                    }}
-                    onTransactionConfirmed={(receipt) => {
-                      console.log(
-                        "Transaction confirmed",
-                        receipt.transactionHash
-                      );
-                    }}
-                    onError={(error) => {
-                      console.error("Transaction error", error);
-                    }}
-                    className="w-full px-4 py-2 rounded-md text-white font-medium bg-green-600 hover:bg-green-500"
-                  >
-                    Withdraw Reward
-                  </TransactionButton>
+              <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="text-sm text-gray-400">Estimated Winnings</div>
+                <div className="text-2xl font-bold text-white">
+                  {formatCurrency(estimatedWinnings)}
                 </div>
-              )}
+              </div>
             </div>
-          }
+          )}
 
-          {/* {(!didUserWin() && Number(userForBet) > 0) ||
-            (Number(userAgainstBet) > 0 && (
-              <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-gray-600">
+          {!didUserWin &&
+            (_amountBettedForByUser > 0 || _amountBettedAgainstByUser > 0) && (
+              <div className="bg-gray-800/70 rounded-lg p-6 border border-gray-700 mb-6">
                 <div className="text-center">
-                  <div className="text-gray-400 font-medium">
+                  <div className="inline-block p-3 bg-gray-700/50 rounded-full mb-3">
+                    <Activity className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <div className="text-gray-300 font-medium text-lg">
                     Better luck next time!
                   </div>
-                  <div className="text-lg text-white mt-1">
+                  <div className="text-gray-400 mt-2">
                     Your bet did not win this round.
                   </div>
                 </div>
               </div>
-            ))} */}
+            )}
+
+          {/* Random Reward Section - Just announcement, no separate button */}
+          {isUserRandomRewardWinner && (
+            <div className="mt-6 mb-6 bg-gradient-to-r from-fuchsia-900/30 to-purple-900/20 rounded-xl p-6 border border-fuchsia-700/50 relative overflow-hidden">
+              <div className="absolute top-0 right-0 opacity-10">
+                <Star className="h-40 w-40" />
+              </div>
+
+              <div className="flex items-center mb-4">
+                <Gift className="h-8 w-8 mr-3 text-fuchsia-400" />
+                <div>
+                  <div className="text-fuchsia-400 font-bold text-lg">
+                    Bonus Reward!
+                  </div>
+                  <div className="text-gray-300">
+                    You've won a random bonus reward! The reward will be
+                    included with your withdrawal.
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="text-sm text-gray-400">Bonus Amount</div>
+                <div className="text-2xl font-bold text-white">
+                  {formatCurrency(_randomRewardInUSD)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Withdraw Button - Always displayed unless owner */}
+          {!isContractOwner &&
+            (_amountBettedAgainstByUser != 0 ||
+              _amountBettedForByUser != 0) && (
+              <div className="mt-4">
+                <TransactionButton
+                  transaction={() => {
+                    const tx = prepareContractCall({
+                      contract,
+                      method: "function withdrawAmount(address user) payable",
+                      params: [accountAddress],
+                    });
+                    return tx;
+                  }}
+                  onTransactionSent={(result) => {
+                    console.log(
+                      "Transaction submitted",
+                      result.transactionHash
+                    );
+                  }}
+                  onTransactionConfirmed={(receipt) => {
+                    console.log(
+                      "Transaction confirmed",
+                      receipt.transactionHash
+                    );
+                  }}
+                  onError={(error) => {
+                    console.error("Transaction error", error);
+                  }}
+                  className="w-full px-4 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 transition-all flex items-center justify-center"
+                >
+                  <Award className="h-5 w-5 mr-2" />
+                  Withdraw Your Funds
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </TransactionButton>
+              </div>
+            )}
+
+          {/* Owner Withdraw Deposits Button */}
+          {isContractOwner && (
+            <div className="mt-4">
+              <TransactionButton
+                transaction={() => {
+                  const tx = prepareContractCall({
+                    contract,
+                    method: "function withdrawDeposits() payable",
+                    params: [],
+                  });
+                  return tx;
+                }}
+                onTransactionSent={(result) => {
+                  console.log("Transaction submitted", result.transactionHash);
+                }}
+                onTransactionConfirmed={(receipt) => {
+                  console.log("Transaction confirmed", receipt.transactionHash);
+                }}
+                onError={(error) => {
+                  console.error("Transaction error", error);
+                }}
+                className="w-full px-4 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 transition-all flex items-center justify-center"
+              >
+                <Award className="h-5 w-5 mr-2" />
+                Withdraw Deposits
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </TransactionButton>
+            </div>
+          )}
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <div className="flex items-center">
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center text-gray-400 bg-gray-800/30 px-3 py-2 rounded-full">
           <Activity className="h-3 w-3 mr-1" />
-          <span className="text-gray-400">Status: Bet Ended</span>
+          <span>Status: Bet Ended</span>
         </div>
         <a
           href={`https://coston2-explorer.flare.network/address/${contract.address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center text-fuchsia-400 hover:text-fuchsia-300"
+          className="flex items-center text-fuchsia-400 hover:text-fuchsia-300 transition-colors bg-gray-800/30 px-3 py-2 rounded-full"
         >
-          View contract on Flare Testnet Coston2 explorer
-          <span className="ml-1">↗</span>
+          View on Flare Explorer
+          <ChevronRight className="h-3 w-3 ml-1" />
         </a>
       </div>
     </div>

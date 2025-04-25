@@ -9,13 +9,7 @@ import {RandomNumberV2Interface} from "@flarenetwork/flare-periphery-contracts/c
 contract FlareBetting {
 
     /*
-    ===================================
-    ===================================
-    ===================================
     ===========FTSO Contracts==========
-    ===================================
-    ===================================
-    ===================================
     */
     // FTSO contract to get FLR/USD price feed
     TestFtsoV2Interface internal ftsoV2;
@@ -23,26 +17,14 @@ contract FlareBetting {
     RandomNumberV2Interface internal randomV2;
 
     /* 
-    ===========================
-    ===========================
-    ===========================
     ===========Errors==========
-    ===========================
-    ===========================
-    ===========================
     */
     error Betting_upKeepNotNeeded();
     error Betting__transferFailed();
     error Betting__sendMoreGasToStartBet();
 
     /* 
-    ======================================
-    ======================================
-    ======================================
     ===========Type Declarations==========
-    ======================================
-    ======================================
-    ======================================
     */
     enum BetStatus {
         YetToBeStarted, 
@@ -53,13 +35,7 @@ contract FlareBetting {
     }
 
     /* 
-    ====================================
-    ====================================
-    ====================================
     ===========State Variables==========
-    ====================================
-    ====================================
-    ====================================
     */
 
     uint256 private immutable i_betFeesInUSD ;
@@ -70,23 +46,21 @@ contract FlareBetting {
     uint256 private s_randomRewardInUSD ;
     mapping  (address => uint256 ) private s_forBettersToAmountBetInUSD ;
     mapping (address => uint256) private s_againstBettersToAmountBetInUSD ;
+    mapping  (address => uint256 ) private s_forBettersToAmountBetInUSD__ ;
+    mapping (address => uint256) private s_againstBettersToAmountBetInUSD__ ;
     address payable [] s_forBettersAddresses ;
     address payable [] s_againstBettersAddresses ;
     uint256 private s_betCreationTimeStamp ;
     address payable s_owner ;
+    address payable s_randomRewardWinner ;
     bool public s_isBetCreated ;
+    bool public s_isForSideWinner ;
     uint256 private s_amountBettedForInUSD ;
     uint256 private s_amountBettedAgainstInUSD ;
     BetStatus public _betStatus ;
 
     /* 
-    ============================
-    ============================
-    ============================
     =========Events=============
-    ============================
-    ============================
-    ============================
     */
     event BetsExpired();
     event BetPlaced(address indexed player);
@@ -94,13 +68,7 @@ contract FlareBetting {
     event randomWinnerPicked(address indexed player);
 
     /* 
-    =============================
-    =============================
-    =============================
     ==========Modifiers==========
-    =============================
-    =============================
-    =============================
      */
      modifier onlyOwner () {
         require(msg.sender == s_owner , "Only the deployer of the contract may send this transaction");
@@ -130,24 +98,18 @@ contract FlareBetting {
 
 
     /*
-    ===============================
-    =============================== 
-    ===============================  
     ===========Functions===========
-    =============================== 
-    =============================== 
-    =============================== 
     */
 
     /* Constructor */
     constructor (
         uint256 _betFeesInUSD ,
-        uint256 _betPlacingIntervalInDays ,
+        uint256 _betPlacingIntervalInMinutes ,
         uint256 _maximumSpreadInUSD ,
         uint256 _maximumBetFromEitherTeamInUSD
     ) {
         i_betFeesInUSD = _betFeesInUSD ;
-        i_betPlacingInterval = _betPlacingIntervalInDays * 1 days;
+        i_betPlacingInterval = _betPlacingIntervalInMinutes * 1 minutes;
         i_maximumSpreadInUSD = _maximumSpreadInUSD ;
         i_maximumBetFromEitherTeamInUSD = _maximumBetFromEitherTeamInUSD ;
         s_isBetCreated = false ;
@@ -171,21 +133,23 @@ contract FlareBetting {
     /* Functions that let the user bet for and against */
     function betFor (uint256 amountToBetInUSD) external payable onlyAfterBetHasStarted whileBetIsBettingPeriodOngoing{
         require(s_amountBettedForInUSD + amountToBetInUSD <= i_maximumBetFromEitherTeamInUSD , "Maximum bet Amounts have been accepted");
-        require(msg.value >= convertUSDtoFLRinWei(amountToBetInUSD), "Send more") ;
+        /* require(msg.value >= convertUSDtoFLRinWei(amountToBetInUSD), "Send more") ; */
         if(s_forBettersToAmountBetInUSD[msg.sender] == 0) {
             s_forBettersAddresses.push(payable (msg.sender));
         }
         s_forBettersToAmountBetInUSD[msg.sender] += amountToBetInUSD ;
+        s_forBettersToAmountBetInUSD__[msg.sender] += amountToBetInUSD ;
         s_amountBettedForInUSD += amountToBetInUSD ;
 
     }
     function betAgainst (uint256 amountToBetInUSD) external payable onlyAfterBetHasStarted whileBetIsBettingPeriodOngoing{
         require(s_amountBettedAgainstInUSD + amountToBetInUSD <= i_maximumBetFromEitherTeamInUSD , "Maximum bet Amounts have been accepted");
-        require(msg.value >= convertUSDtoFLRinWei(amountToBetInUSD), "Send more") ;
+        /* require(msg.value >= convertUSDtoFLRinWei(amountToBetInUSD), "Send more") ; */
         if(s_againstBettersToAmountBetInUSD[msg.sender] == 0) {
             s_againstBettersAddresses.push(payable (msg.sender));
         }
         s_againstBettersToAmountBetInUSD[msg.sender] += amountToBetInUSD ;
+        s_againstBettersToAmountBetInUSD__[msg.sender] += amountToBetInUSD ;
         s_amountBettedAgainstInUSD += amountToBetInUSD;
 
     }
@@ -230,15 +194,16 @@ contract FlareBetting {
     }
 
     /* function to resolve the bet */
-    function resolveBetWithFDC(uint256 maxPriceInUSD , uint256 minPriceInUSD) external whileBetBeingResolved returns (bool isForSideWinner ){
+    function resolveBetWithFDC(uint256 difference) external whileBetBeingResolved returns (bool isForSideWinner ){
     // Compare against target
-    bool conditionMet = (maxPriceInUSD - minPriceInUSD >= i_maximumSpreadInUSD);
+    bool conditionMet = (difference >= i_maximumSpreadInUSD);
     if(conditionMet) {
         if(s_forBettersAddresses.length != 0){
         // picking and rewarding the bonus at random 
         (uint256 randomNumber , , ) = getSecureRandomNumber();
         uint256 randomIndex = randomNumber % s_forBettersAddresses.length ;
         address payable randomRewardWinner = s_forBettersAddresses[randomIndex] ;
+        s_randomRewardWinner = randomRewardWinner;
         s_forBettersToAmountBetInUSD[randomRewardWinner] += s_randomRewardInUSD ;
         emit randomWinnerPicked(randomRewardWinner);        
         }
@@ -256,6 +221,7 @@ contract FlareBetting {
 
         emit winnersPicked(true);
         isForSideWinner = true ;
+        s_isForSideWinner = true ;
 
 
     } else {
@@ -265,6 +231,7 @@ contract FlareBetting {
         (uint256 randomNumber , , ) = getSecureRandomNumber();
         uint256 randomIndex = randomNumber % s_againstBettersAddresses.length ;
         address payable randomRewardWinner = s_againstBettersAddresses[randomIndex] ;
+        s_randomRewardWinner = randomRewardWinner;
         s_againstBettersToAmountBetInUSD[randomRewardWinner] += s_randomRewardInUSD ;
         emit randomWinnerPicked(randomRewardWinner);
                     
@@ -283,6 +250,7 @@ contract FlareBetting {
 
         emit winnersPicked(false);
         isForSideWinner = false ;
+        s_isForSideWinner = false ;
     }
 
 
@@ -294,7 +262,7 @@ contract FlareBetting {
     /* 
     Function to withdraw the amounts of user
     */
-    function withdrawAmount (address payable user) external payable afterBetHasBeenResolved {
+    function withdrawAmount(address payable user) external payable afterBetHasBeenResolved {
         if(s_forBettersToAmountBetInUSD[user] !=0 ) {
             (bool sent , ) = user.call{value : convertUSDtoFLRinWei(s_forBettersToAmountBetInUSD[user])}("") ;
             require(sent , "Transfer failed") ;
@@ -305,6 +273,24 @@ contract FlareBetting {
         }
     }
 
+    /* 
+    Function for the contract owner to withdraw his profits / remaining funds
+    */
+    function withdrawAmountOwner() external payable afterBetHasBeenResolved onlyOwner{
+        uint256 ownersBalance = address(this).balance ;
+        for(uint256 i=0 ; i<s_forBettersAddresses.length ; i++)
+        {
+            address payable user = s_forBettersAddresses[i] ;
+            ownersBalance -= convertUSDtoFLRinWei(s_forBettersToAmountBetInUSD[user]);
+        }
+        for(uint256 i=0 ; i<s_againstBettersAddresses.length ; i++)
+        {
+            address payable user = s_againstBettersAddresses[i] ;
+            ownersBalance -= convertUSDtoFLRinWei(s_forBettersToAmountBetInUSD[user]);
+        }
+        (bool sent , ) = payable(msg.sender).call{value : ownersBalance}("") ;
+        require(sent , "Transfer failed") ;
+    }
 
     /* 
     Functions to change bet state
@@ -381,4 +367,19 @@ contract FlareBetting {
     function getAmountBettedAgainstByAddress(address payable Address) external  view returns (uint256) {
         return s_againstBettersToAmountBetInUSD[Address];
     }
+       function getAmountBettedForByAddress__(address payable Address) external  view returns (uint256) {
+        return s_forBettersToAmountBetInUSD[Address];
+    }
+    function getAmountBettedAgainstByAddress__(address payable Address) external  view returns (uint256) {
+        return s_againstBettersToAmountBetInUSD[Address];
+    }
+
+    function getIsForSideWinner() external view returns (bool) {
+        return s_isForSideWinner;
+    }
+
+    function getRandomRewardWinner() external view returns (address) {
+        return s_randomRewardWinner;
+    }
+
 }`;

@@ -10,7 +10,7 @@ import { privateKeyToAccount } from "thirdweb/wallets";
 export default function BetNotStarted({ contract, event }) {
   const account = useActiveAccount();
   const PRIVATE_KEY =
-    "0xea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
+    "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
   const ownerAccount = privateKeyToAccount({
     client,
     privateKey: PRIVATE_KEY,
@@ -18,71 +18,6 @@ export default function BetNotStarted({ contract, event }) {
   const isOwner =
     account?.address === "0x4CaEC2a0C3902702631a785C9CAcb8925e0BE755";
   const { mutate: sendTransaction } = useSendTransaction();
-
-  // Function to send the transaction
-  async function changeBetStateToObservationOnGoing() {
-    try {
-      // Prepare the transaction
-      const transaction = prepareContractCall({
-        contract,
-        method: "function changeBetStateToObservationPeriodOngoing()",
-        params: [],
-      });
-
-      // Send the transaction using the owner account
-      const result = await sendTransaction({
-        transaction,
-        ownerAccount,
-      });
-
-      console.log("Transaction sent successfully!");
-      console.log("Transaction hash:", result.transactionHash);
-
-      return result;
-    } catch (error) {
-      console.error("Failed to send transaction:", error);
-      throw error;
-    }
-  }
-  async function changeBetStateToBetResolving() {
-    try {
-      // Prepare the transaction
-      const transaction = prepareContractCall({
-        contract,
-        method: "function changeBetStateToBetBeingResolved()",
-        params: [],
-      });
-
-      // Send the transaction using the owner account
-      const result = await sendTransaction({
-        transaction,
-        ownerAccount,
-      });
-
-      console.log("Transaction sent successfully!");
-      console.log("Transaction hash:", result.transactionHash);
-
-      return result;
-    } catch (error) {
-      console.error("Failed to send transaction:", error);
-      throw error;
-    }
-  }
-  const triggerChangeBetStateToObservationOnGoing = async () => {
-    await changeBetStateToObservationOnGoing();
-  };
-  const triggerChangeBetStateToBetResolving = async () => {
-    await changeBetStateToBetResolving();
-  };
-
-  const _changeBetStateToObservationPeriodOngoing = () => {
-    const transaction = prepareContractCall({
-      contract,
-      method: "function changeBetStateToObservationPeriodOngoing()",
-      params: [],
-    });
-    sendTransaction(transaction);
-  };
 
   return (
     <div className="px-4 py-3 bg-slate-950 border-t border-gray-800">
@@ -102,7 +37,7 @@ export default function BetNotStarted({ contract, event }) {
                 contract,
                 method: "function startBet() payable",
                 params: [],
-                value: parseEther("990"),
+                value: parseEther("320"),
               });
               return tx;
             }}
@@ -111,12 +46,6 @@ export default function BetNotStarted({ contract, event }) {
             }}
             onTransactionConfirmed={(receipt) => {
               console.log("Transaction confirmed", receipt.transactionHash);
-              setTimeout(() => {
-                triggerChangeBetStateToObservationOnGoing();
-                setTimeout(() => {
-                  triggerChangeBetStateToBetResolving();
-                }, 86405);
-              }, 86405);
             }}
             onError={(error) => {
               console.error("Transaction error", error);

@@ -10,6 +10,9 @@ import {
   Users,
   CircleDollarSign,
   Pyramid,
+  Github,
+  Twitter,
+  Mail,
 } from "lucide-react";
 export default function Footer() {
   return (
@@ -18,16 +21,29 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
           <div className="mt-8 flex justify-center space-x-6">
             {/* Social Media Icons */}
-            {["Twitter", "GitHub", "Discord", "Telegram"].map((social) => (
+            <div className="flex flex-wrap gap-4">
               <a
-                key={social}
-                href="#"
-                className="text-gray-400 hover:text-fuchsia-400"
+                href="https://github.com/tunnelrat07"
+                className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
               >
-                <span className="sr-only">{social}</span>
-                <div className="h-6 w-6 rounded-full bg-gray-800"></div>
+                <Github className="h-5 w-5 mr-2" />
+                <span>Github</span>
               </a>
-            ))}
+              <a
+                href="https://x.com/mundane_league7"
+                className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                <Twitter className="h-5 w-5 mr-2" />
+                <span>Twitter</span>
+              </a>
+              <a
+                href="mailto:reachashish2004@gmail.com"
+                className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                <span>Mail</span>
+              </a>
+            </div>
           </div>
           <div className="mt-8 flex justify-center space-x-6">
             <a

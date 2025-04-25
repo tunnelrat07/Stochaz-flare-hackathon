@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   useActiveAccount,
   useReadContract,
@@ -12,6 +12,7 @@ import DualCircularBetGraph from "./BettingPeriodOnGoingComponents/Circular";
 
 export default function BettingPeriodOngoing({ contract, event, betState }) {
   const [betSide, setBetSide] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const account = useActiveAccount();
   const accountAddress = account?.address;
   const { mutate: sendTransaction } = useSendTransaction();
@@ -116,13 +117,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
       params: [],
     });
   const _randomRewardInUSD = randomRewardInUSD ? Number(randomRewardInUSD) : 0;
-  /*   const { data: secureRandomNumber, isPending: isPendingSecureRandomNumber } =
-    useReadContract({
-      contract,
-      method:
-        "function getSecureRandomNumber() view returns (uint256 randomNumber, bool isSecure, uint256 timestamp)",
-      params: [],
-    }); */
+
   const { data: timeLeftToPlaceBets, isPending: isPendingTimeLeftToPlaceBet } =
     useReadContract({
       contract,
@@ -189,6 +184,28 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
     ? Number(timeRemainingInSecondsTillResult)
     : 0;
 
+  // Update the time remaining every second
+  useEffect(() => {
+    // Initialize timeRemaining with the value from contract
+    setTimeRemaining(_timeLeftToPlaceBets);
+
+    // Set up an interval to decrement the time every second
+    const timer = setInterval(() => {
+      setTimeRemaining((prevTime) => {
+        // If time is up or already at 0, clear the interval and return 0
+        if (prevTime <= 0) {
+          clearInterval(timer);
+          return 0;
+        }
+        // Otherwise, decrement by 1 second
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(timer);
+  }, [_timeLeftToPlaceBets]); // Re-run effect when contract data changes
+
   // Format time remaining
   const formatTimeRemaining = (seconds) => {
     if (!seconds) return "Betting Period is over";
@@ -243,7 +260,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
           </div>
           <div className="text-xl font-bold text-white flex items-center">
             <Clock className="h-4 w-4 mr-2" />
-            {formatTimeRemaining(_timeLeftToPlaceBets)}
+            {formatTimeRemaining(timeRemaining)}
           </div>
         </div>
 
@@ -299,6 +316,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
               : "bg-gray-800 text-gray-200 hover:bg-gray-700"
           }`}
           onClick={() => setBetSide(betSide === "for" ? null : "for")}
+          disabled={timeRemaining <= 0}
         >
           <div className="text-left">
             <div className="font-medium">
@@ -320,6 +338,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
               : "bg-gray-800 text-gray-200 hover:bg-gray-700"
           }`}
           onClick={() => setBetSide(betSide === "against" ? null : "against")}
+          disabled={timeRemaining <= 0}
         >
           <div className="text-left">
             <div className="font-medium">
@@ -386,6 +405,7 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
                 console.error("Transaction error", error);
               }}
               className="px-4 py-2 rounded-md text-white font-medium bg-fuchsia-600 hover:bg-fuchsia-500"
+              disabled={timeRemaining <= 0}
             >
               Confirm Bet
             </TransactionButton>
@@ -396,7 +416,12 @@ export default function BettingPeriodOngoing({ contract, event, betState }) {
       <div className="flex items-center justify-between text-xs text-gray-400">
         <div className="flex items-center">
           <Activity className="h-3 w-3 mr-1" />
-          <span className="text-gray-400">Status: Betting Period Active</span>
+          <span className="text-gray-400">
+            Status:{" "}
+            {timeRemaining > 0
+              ? "Betting Period Active"
+              : "Betting Period Closed"}
+          </span>
         </div>
         <a
           href={`https://coston2-explorer.flare.network/address/${contract.address}`}

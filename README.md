@@ -68,6 +68,31 @@ function getFtsoV2CurrentFeedValues()
 }
 ```
 
+**FDC Integration**:
+
+```javascript
+const response = await axios.post(
+  "https://jq-verifier-test.flare.rocks/JsonApi/prepareRequest",
+  {
+    attestationType:
+      "0x494a736f6e417069000000000000000000000000000000000000000000000000",
+    sourceId:
+      "0x5745423200000000000000000000000000000000000000000000000000000000",
+    requestBody: {
+      url: coinGeckoUrl,
+      postprocessJq: ".prices | map(.[1]) | max * 1000000 | floor",
+      abi_signature: "value(uint256)",
+    },
+  },
+  {
+    headers: {
+      "Content-Type": "application/json",
+      X-API-KEY: "JQ_VERIFIER_API_KEY, // Add your API key or token here
+    },
+  }
+);
+```
+
 **Random Number Generation**:
 
 ```solidity
@@ -135,7 +160,7 @@ function resolveBetWithFDC(uint256 maxPriceInUSD, uint256 minPriceInUSD)
 
 ### Landing Page
 
-![Landing Page](./public/landingPage.png)
+![Landing Page](./public/FinalLAndingPage.png)
 
 #### Component Structure
 
@@ -143,11 +168,27 @@ The React frontend uses ThirdWeb SDK for blockchain interactions and features a 
 
 1. **Event Cards**: Display active betting opportunities
 2. **State-specific Components**:
-   - `BetNotStarted`: Pre-betting information
+
+   - `BetNotStarted`: Pre-betting information -
+     The owner of the contract sees a button to start the bet, and other users can only participate once the contract owner starts the bet.
+     ![YetToStartBet](./public/BetYetToBeStarted.png)
    - `BettingPeriodOngoing`: Core betting interface
+     During this phase, users can access real-time aggregate betting statistics.
+     ![BettingStats](./public/BettingStats.png)
+     Users can also see their individual betting positions, and are able to place "For" and "Against" bets through the frontend, which serves as an interface to the underlying smart contract.
+     ![InteractWithTheContract](./public/CoreBettingInterface.png)
    - `ObservationPeriodOngoing`: Display during result observation
-   - `BetBeingResolved`: Bet resolution process visualization
+     During this phase, users can view real-time betting statistics, monitor their own positions, and see a live countdown of the time remaining until the bet is resolved, while the system awaits final outcome determination.
+     ![ObservationPeriodOngoing](./public/Observation.png)
+   - `BetBeingResolved`: Users can see a loader while the bet is being resolved
+     ![ResolvingBet](./public/Resolving%20Bet.png)
    - `BetEnded`: Results and withdrawal options
+     In this phase, users see the resolved outcome of the bet. Players on the winning side are presented with a "Withdraw Funds" option along with a congratulatory message.
+     ![WinnerMessage](./public/WithdrawFundsUser.png)
+     Additionally, the randomly selected bonus winner (from the winning side) sees a special message indicating they’ve won the bonus and can withdraw their reward with the added bonus.
+     ![RandomWinnerMessage](./public/WithdrawFundsRandomREwardWinner.png)
+     Players on the losing side see a "Better luck next time" message. All users can review final betting statistics and outcomes.
+     ![LoserMessage](./public/BetLost.png)
 
 #### BettingPeriodOngoing Component
 
@@ -359,7 +400,7 @@ Provides cryptographically secure random numbers used for:
    npm install
    ```
 
-3. Configure the application by updating the contract address in `src/client.js`:
+3. Configure the application by updating the contract address in `src/client.ts`:
 
    ```javascript
    const contract = getContract({

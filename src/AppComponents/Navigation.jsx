@@ -13,7 +13,7 @@ import {
 export default function Navbar({ menuOpen, setMenuOpen }) {
   return (
     <>
-      <nav className="border-b border-gray-800 bg-slate-950">
+      <nav className="border-b border-gray-800 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between h-16 px-3 py-5">
             <div className="flex items-center">

@@ -2,9 +2,9 @@ const bettingEvents = {
   live: [
     {
       id: 1,
-      title: "Price of ENS Token moves by $5 tommorow",
+      title: "Price of ENS Token moves by $1 tommorow",
       description:
-        "Will the difference between the maximum and the minimum price of the ENS token tommorow cross $5 ?",
+        "Will the difference between the maximum and the minimum price of the ENS token tommorow cross $1 ?",
       chain: "Flare Testnet Coston2",
       endsIn: "3d 8h",
       oracle: "Flare FTSO Price Feed",

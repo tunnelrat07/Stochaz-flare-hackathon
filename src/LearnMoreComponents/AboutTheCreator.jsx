@@ -17,7 +17,6 @@ export default function AboutTheCreator() {
       <section className="mb-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-extrabold text-white mb-8 flex items-center">
-            <Zap className="h-8 w-8 text-fuchsia-500 mr-3" />
             About the Creator
           </h2>
           <div className="bg-gray-800 rounded-lg shadow-xl p-8">

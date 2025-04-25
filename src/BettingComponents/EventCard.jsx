@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ethers } from "ethers";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
+import { TransactionButton, useSendTransaction } from "thirdweb/react";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import bettingEvents from "./bettingEvents";
 import {
@@ -9,6 +10,7 @@ import {
   resolveMethod,
   prepareContractCall,
 } from "thirdweb";
+import { privateKeyToAccount } from "thirdweb/wallets";
 // Import our bet status components
 import BetNotStarted from "./EventComponents/YetToBeStarted";
 import BettingPeriodOngoing from "./EventComponents/BettingPeriodOnGoing";
@@ -19,20 +21,93 @@ import { client } from "../client";
 import { defineChain } from "thirdweb/chains";
 // connect to your contract
 const contract = getContract({
-  client: client,
+  client,
   chain: defineChain(114),
-  address: "0x4aC6E3F4c83805fa07953B31db844a547d11707c",
+  address: "0x837B83ec2A8B857735Ffdf3c182BBF5893dB6d66",
 });
+console.log(contract);
 
 export default function Events({ activeTab, setActiveTab }) {
   const account = useActiveAccount();
-
+  const { mutate: sendTransaction } = useSendTransaction();
   // Get the bet status
   const { data: betStatus, isLoading: isLoadingBetStatus } = useReadContract({
     contract,
     method: "function getBetStatus() view returns (uint8)",
     params: [],
   });
+
+  const PRIVATE_KEY =
+    "ea138133200c16a3383eae23bc3d782e32df101953082e2999f7c3e191253c22"; // Replace with the actual private key
+  const ownerAccount = privateKeyToAccount({
+    client,
+    privateKey: PRIVATE_KEY,
+  });
+
+  // Function to send the transaction
+  async function changeBetStateToObservationOnGoing() {
+    try {
+      // Prepare the transaction
+      const transaction = prepareContractCall({
+        contract,
+        method: "function changeBetStateToObservationPeriodOngoing()",
+        params: [],
+      });
+
+      // Send the transaction using the owner account
+      const result = await sendTransaction({
+        transaction,
+        ownerAccount,
+      });
+
+      console.log("Transaction sent successfully!");
+      console.log("Transaction hash:", result.transactionHash);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to send transaction:", error);
+      throw error;
+    }
+  }
+  async function changeBetStateToBetResolving() {
+    try {
+      // Prepare the transaction
+      const transaction = prepareContractCall({
+        contract,
+        method: "function changeBetStateToBetBeingResolved()",
+        params: [],
+      });
+
+      // Send the transaction using the owner account
+      const result = await sendTransaction({
+        transaction,
+        ownerAccount,
+      });
+
+      console.log("Transaction sent successfully!");
+      console.log("Transaction hash:", result.transactionHash);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to send transaction:", error);
+      throw error;
+    }
+  }
+  const triggerChangeBetStateToObservationOnGoing = async () => {
+    await changeBetStateToObservationOnGoing();
+  };
+  const triggerChangeBetStateToBetResolving = async () => {
+    await changeBetStateToBetResolving();
+  };
+
+  useEffect(() => {
+    setInterval(() => {
+      triggerChangeBetStateToObservationOnGoing();
+    }, 5000);
+    setInterval(() => {
+      triggerChangeBetStateToBetResolving();
+    }, 5000);
+  }, []);
 
   // Render the event card with the appropriate component based on betStatus
   function renderEventCard(event) {
@@ -90,9 +165,9 @@ export default function Events({ activeTab, setActiveTab }) {
       // 2: ObservationPeriodOngoing
       // 3: BetBeingResolved
       // 4: BetEnded
-      /* const status = Number(betStatus); */
-      const status = 1;
-      console.log(status);
+      const status = Number(betStatus);
+      /* const status = 4; */
+
       switch (status) {
         case 0:
           betStatusComponent = (

@@ -25,14 +25,13 @@ export default function SmartContract({
       <section className="mb-24">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-extrabold text-white mb-8 flex items-center">
-            <Shield className="h-8 w-8 text-fuchsia-500 mr-3" />
             The Smart Contract
           </h2>
           <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
             <div className="flex items-center justify-between p-4 bg-gray-900">
               <div className="flex items-center">
-                <span className="text-fuchsia-400 font-mono mr-2">
-                  DecentralizedBetting.sol
+                <span className="text-fuchsia-400 font-mono mr-10">
+                  FlareBetting.sol
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -60,12 +59,12 @@ export default function SmartContract({
               </div>
             </div>
             {contractExpanded && (
-              <div className="relative overflow-auto p-4 bg-gray-900 max-h-[500px]">
+              <div className="relative overflow-auto p-4 bg-gray-900 max-h-[650px]">
                 <style>{`
                     .code-container {
                       border-radius: 0.5rem;
                       font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-                      font-size: 14px;
+                      font-size: 12px !important;
                       line-height: 1.5;
                       direction: ltr;
                       text-align: left;
@@ -100,7 +99,17 @@ export default function SmartContract({
               </div>
             )}
           </div>
-          <div className="mt-6 text-gray-400 text-sm">
+          <a
+            href={`https://coston2-explorer.flare.network/address/0x837B83ec2A8B857735Ffdf3c182BBF5893dB6d66`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-fuchsia-400 hover:text-fuchsia-300 mt-3 text-xs"
+          >
+            View contract on Flare Testnet Coston2 explorer
+            <span className="ml-1">↗</span>
+          </a>
+
+          <div className="mt-3 text-gray-400 text-sm">
             <p>
               This smart contract showcases the core functionality of our
               decentralized betting platform. The actual implementation may
